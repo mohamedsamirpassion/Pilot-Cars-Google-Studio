@@ -109,5 +109,15 @@ export interface BlogPost {
   authorId: string;
   authorName: string;
   publishDate: string; // ISO 8601 format
+  categories?: string[];
   tags?: string[];
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  timestamp: string; // ISO 8601 format
 }

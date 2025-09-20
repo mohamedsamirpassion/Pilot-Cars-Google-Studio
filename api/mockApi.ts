@@ -1,4 +1,4 @@
-import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential, Location, BlogPost } from '../types';
+import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential, Location, BlogPost, Notification } from '../types';
 
 // In-memory database
 let users: User[] = [];
@@ -6,6 +6,7 @@ let orders: PilotOrder[] = [];
 let vendors: Vendor[] = [];
 let permits: Permit[] = [];
 let posts: BlogPost[] = [];
+let notifications: Notification[] = [];
 
 // --- Seeding Initial Data ---
 const marketingUser: User = { id: 'admin5', name: 'Marketing Mary', email: 'marketing@pilotcars.com', role: UserRole.ContentMarketing };
@@ -23,6 +24,8 @@ posts.push(
         authorId: marketingUser.id,
         authorName: marketingUser.name,
         publishDate: '2024-08-10T10:00:00Z',
+        categories: ['Guides', 'Regulations'],
+        tags: ['permitting', 'beginners', 'state laws'],
         content: `
             <p>Transporting an oversize load involves more than just driving from point A to point B. It requires careful planning, adherence to strict regulations, and coordination with various authorities. For newcomers, this can seem overwhelming. Here’s a breakdown of the key areas you need to focus on.</p>
             <h2 class="text-2xl font-bold my-4">1. Understanding State vs. Federal Rules</h2>
@@ -42,6 +45,8 @@ posts.push(
         authorId: marketingUser.id,
         authorName: marketingUser.name,
         publishDate: '2024-07-25T14:30:00Z',
+        categories: ['Best Practices', 'Safety'],
+        tags: ['hiring', 'safety', 'vettng', 'insurance'],
         content: `
             <p>A reliable pilot car service is one of the most critical components of a successful oversize load transport. They are your eyes and ears on the road, ensuring safety for your driver and the public. Here’s what to look for when choosing an escort provider.</p>
             <ol class="list-decimal list-inside space-y-2 my-4">
@@ -145,6 +150,27 @@ permits.push(
     { id: 'p003', clientId: 'client1', clientName: 'Heavy Haulers Inc.', state: 'Oklahoma', submittedDate: '2024-08-12', status: PermitStatus.Requested }
 );
 
+const initialNotifications: Notification[] = [
+    {
+        id: 'notif1',
+        userId: 'vendor1',
+        message: "Your 'LA Permit' credential has expired. Please update it.",
+        link: '/dashboard',
+        isRead: false,
+        timestamp: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+    },
+    {
+        id: 'notif2',
+        userId: 'admin1', // Lead Dispatcher
+        message: "Order #order105 is pending your review.",
+        link: '/dashboard',
+        isRead: true,
+        timestamp: new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
+    }
+];
+notifications.push(...initialNotifications);
+
+
 export const mockApi = {
   login: async (email: string, pass: string): Promise<User> => {
     return new Promise((resolve, reject) => {
@@ -197,6 +223,17 @@ export const mockApi = {
                   ...orderData, id: `order${orders.length + 101}`, status: OrderStatus.New
               };
               orders.push(newOrder);
+              
+              // Notify all admins
+              const admins = users.filter(u => u.role !== UserRole.Client && u.role !== UserRole.Vendor);
+              admins.forEach(admin => {
+                  mockApi.createNotification({
+                      userId: admin.id,
+                      message: `New order #${newOrder.id} from ${newOrder.client.companyName || newOrder.client.name} has been submitted.`,
+                      link: '/dashboard'
+                  });
+              });
+              
               resolve(newOrder);
           }, 500);
       });
@@ -308,6 +345,14 @@ export const mockApi = {
         const orderIndex = orders.findIndex(o => o.id === orderId);
         if (orderIndex > -1) {
           orders[orderIndex].status = OrderStatus.Assigned;
+          
+          if (orders[orderIndex].assignedVendorId) {
+            mockApi.createNotification({
+                userId: orders[orderIndex].assignedVendorId!,
+                message: `You have been approved and assigned to order #${orderId}.`,
+                link: '/dashboard'
+            });
+          }
           resolve(orders[orderIndex]);
         } else {
           reject(new Error('Order not found'));
@@ -370,11 +415,21 @@ export const mockApi = {
   },
 
   // --- Blog API ---
-  getAllPosts: async (): Promise<BlogPost[]> => {
+  getAllPosts: async (filters?: { category?: string; tag?: string }): Promise<BlogPost[]> => {
     return new Promise(resolve => {
       setTimeout(() => {
+        let filteredPosts = [...posts];
+        
+        if (filters?.category) {
+          filteredPosts = filteredPosts.filter(p => p.categories?.includes(filters.category!));
+        }
+        
+        if (filters?.tag) {
+          filteredPosts = filteredPosts.filter(p => p.tags?.includes(filters.tag!));
+        }
+        
         // Return sorted by most recent date
-        resolve([...posts].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()));
+        resolve(filteredPosts.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()));
       }, 400);
     });
   },
@@ -400,10 +455,61 @@ export const mockApi = {
                   id: `post${posts.length + 1}`,
                   slug: slugify(postData.title),
                   publishDate: new Date().toISOString(),
+                  categories: postData.categories || [],
+                  tags: postData.tags || [],
               };
               posts.push(newPost);
               resolve(newPost);
           }, 500);
       });
   },
+  
+  // --- Notification API ---
+  createNotification: (data: Omit<Notification, 'id' | 'isRead' | 'timestamp'>): Notification => {
+      const newNotification: Notification = {
+          ...data,
+          id: `notif${notifications.length + 1}`,
+          isRead: false,
+          timestamp: new Date().toISOString(),
+      };
+      notifications.unshift(newNotification); // Add to the beginning of the list
+      return newNotification;
+  },
+  
+  getNotificationsForUser: async (userId: string): Promise<Notification[]> => {
+      return new Promise(resolve => {
+          setTimeout(() => {
+              resolve(notifications.filter(n => n.userId === userId));
+          }, 400);
+      });
+  },
+  
+  markNotificationAsRead: async (notificationId: string): Promise<Notification> => {
+      return new Promise((resolve, reject) => {
+          setTimeout(() => {
+              const index = notifications.findIndex(n => n.id === notificationId);
+              if (index > -1) {
+                  notifications[index].isRead = true;
+                  resolve(notifications[index]);
+              } else {
+                  reject(new Error("Notification not found"));
+              }
+          }, 100);
+      });
+  },
+
+  markAllNotificationsAsRead: async (userId: string): Promise<Notification[]> => {
+      return new Promise(resolve => {
+          setTimeout(() => {
+              const userNotifications: Notification[] = [];
+              notifications.forEach(n => {
+                  if (n.userId === userId) {
+                      n.isRead = true;
+                      userNotifications.push(n);
+                  }
+              });
+              resolve(userNotifications);
+          }, 200);
+      });
+  }
 };

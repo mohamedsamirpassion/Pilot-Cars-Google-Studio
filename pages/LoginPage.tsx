@@ -40,6 +40,7 @@ const LoginPage: React.FC = () => {
     { role: 'Dispatcher', email: 'dispatcher@pilotcars.com' },
     { role: 'Permit Agent', email: 'permit.agent@pilotcars.com' },
     { role: 'Supervisor', email: 'supervisor@pilotcars.com' },
+    { role: 'Content Marketing', email: 'marketing@pilotcars.com' },
     { role: 'Super Admin', email: 'super.admin@pilotcars.com' },
   ];
 

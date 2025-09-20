@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
-import { ArrowRight, Calendar, User } from 'lucide-react';
+import { ArrowRight, Calendar, User, Tag } from 'lucide-react';
 import Card, { CardContent, CardFooter } from './Card';
 
 interface BlogPostCardProps {
@@ -34,6 +34,20 @@ const BlogPostCard: React.FC<BlogPostCardProps> = ({ post }) => {
           </div>
         </div>
         <p className="text-slate-600 line-clamp-3">{post.excerpt}</p>
+        
+        {(post.tags && post.tags.length > 0) && (
+            <div className="flex flex-wrap gap-2 mt-4">
+                {post.tags.slice(0, 3).map(tag => (
+                    <Link 
+                        key={tag} 
+                        to={`/blog?tag=${encodeURIComponent(tag)}`}
+                        className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-full hover:bg-primary hover:text-white transition-colors"
+                    >
+                       #{tag}
+                    </Link>
+                ))}
+            </div>
+        )}
       </CardContent>
       <CardFooter>
         <Link 

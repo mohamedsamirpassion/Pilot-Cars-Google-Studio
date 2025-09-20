@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { mockApi } from '../api/mockApi';
-import { Loader, Calendar, User, ArrowLeft } from 'lucide-react';
+import { Loader, Calendar, User, ArrowLeft, Folder, Tag } from 'lucide-react';
 import Card, { CardContent } from '../components/Card';
 
 const BlogPostPage: React.FC = () => {
@@ -121,6 +121,31 @@ const BlogPostPage: React.FC = () => {
               </div>
             </div>
             
+            <div className="flex flex-wrap items-start gap-x-6 gap-y-3 mb-8 text-sm">
+                {(post.categories && post.categories.length > 0) && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <Folder size={16} className="text-slate-400"/>
+                        <span className="font-semibold">Categories:</span>
+                        <div className="flex flex-wrap gap-2">
+                            {post.categories.map(cat => (
+                                <Link key={cat} to={`/blog?category=${encodeURIComponent(cat)}`} className="bg-primary-100 text-primary-700 px-2.5 py-1 rounded-full hover:bg-primary hover:text-white transition-colors">{cat}</Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                 {(post.tags && post.tags.length > 0) && (
+                    <div className="flex items-center gap-2 text-slate-600">
+                        <Tag size={16} className="text-slate-400"/>
+                        <span className="font-semibold">Tags:</span>
+                        <div className="flex flex-wrap gap-2">
+                            {post.tags.map(tag => (
+                                <Link key={tag} to={`/blog?tag=${encodeURIComponent(tag)}`} className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full hover:bg-slate-600 hover:text-white transition-colors">#{tag}</Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <div dangerouslySetInnerHTML={{ __html: post.content }} />
           </article>
         </CardContent>

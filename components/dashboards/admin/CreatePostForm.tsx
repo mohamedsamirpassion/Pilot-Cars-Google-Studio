@@ -3,7 +3,7 @@ import { Save } from 'lucide-react';
 import { CardContent, CardFooter } from '../../Card';
 
 interface CreatePostFormProps {
-  onSubmit: (data: { title: string; excerpt: string; content: string }) => Promise<void>;
+  onSubmit: (data: { title: string; excerpt: string; content: string; categories: string[], tags: string[] }) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -11,16 +11,22 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
+  const [categories, setCategories] = useState('');
+  const [tags, setTags] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !excerpt || !content) {
-      alert('Please fill out all fields.');
+      alert('Please fill out title, excerpt, and content.');
       return;
     }
     setLoading(true);
-    await onSubmit({ title, excerpt, content });
+
+    const categoriesArray = categories.split(',').map(c => c.trim()).filter(Boolean);
+    const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+
+    await onSubmit({ title, excerpt, content, categories: categoriesArray, tags: tagsArray });
     setLoading(false);
   };
 
@@ -52,6 +58,34 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
             disabled={loading}
           />
            <p className="text-xs text-slate-400 mt-1">{excerpt.length} / 160 characters</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="categories" className="block text-sm font-medium text-slate-600 mb-1">Categories</label>
+              <input
+                id="categories"
+                type="text"
+                value={categories}
+                onChange={(e) => setCategories(e.target.value)}
+                className="input"
+                placeholder="e.g., Guides, News, Safety"
+                disabled={loading}
+              />
+               <p className="text-xs text-slate-400 mt-1">Separate with commas.</p>
+            </div>
+            <div>
+              <label htmlFor="tags" className="block text-sm font-medium text-slate-600 mb-1">Tags</label>
+              <input
+                id="tags"
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                className="input"
+                placeholder="e.g., permitting, regulations"
+                disabled={loading}
+              />
+              <p className="text-xs text-slate-400 mt-1">Separate with commas.</p>
+            </div>
         </div>
         <div>
           <label htmlFor="content" className="block text-sm font-medium text-slate-600 mb-1">Content (use HTML for formatting)</label>

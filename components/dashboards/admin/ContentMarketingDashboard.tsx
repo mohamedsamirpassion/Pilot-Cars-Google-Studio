@@ -29,7 +29,7 @@ const ContentMarketingDashboard: React.FC = () => {
     fetchPosts();
   }, [fetchPosts]);
 
-  const handleCreatePost = async (data: { title: string; excerpt: string; content: string }) => {
+  const handleCreatePost = async (data: { title: string; excerpt: string; content: string; categories: string[], tags: string[] }) => {
     if (!user) {
       alert('You must be logged in to create a post.');
       return;
