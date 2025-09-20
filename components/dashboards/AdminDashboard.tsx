@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Card, { CardContent, CardHeader } from '../Card';
-import { Layers, Map, UserCheck, Plus, Search, Loader } from 'lucide-react';
+import { Layers, Map, UserCheck, Plus, Search, Loader, Eye } from 'lucide-react';
 import { PilotOrder, Vendor, OrderStatus } from '../../types';
 import AssignPilotModal from './AssignPilotModal';
+import OrderDetailsModal from './OrderDetailsModal';
 import { mockApi } from '../../api/mockApi';
 
 const AdminDashboard: React.FC = () => {
@@ -10,8 +11,14 @@ const AdminDashboard: React.FC = () => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<PilotOrder | null>(null);
+    
+    // State for Assign Pilot Modal
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<PilotOrder | null>(null);
+
+    // State for View Details Modal
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<PilotOrder | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -39,14 +46,24 @@ const AdminDashboard: React.FC = () => {
         }, {} as Record<string, Vendor>);
     }, [vendors]);
 
-    const handleOpenModal = (order: PilotOrder) => {
-        setSelectedOrder(order);
-        setIsModalOpen(true);
+    const handleOpenAssignModal = (order: PilotOrder) => {
+        setSelectedOrderForAssign(order);
+        setIsAssignModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedOrder(null);
+    const handleCloseAssignModal = () => {
+        setIsAssignModalOpen(false);
+        setSelectedOrderForAssign(null);
+    };
+    
+    const handleOpenDetailsModal = (order: PilotOrder) => {
+        setSelectedOrderForDetails(order);
+        setIsDetailsModalOpen(true);
+    };
+
+    const handleCloseDetailsModal = () => {
+        setIsDetailsModalOpen(false);
+        setSelectedOrderForDetails(null);
     };
 
     const handleAssignPilot = async (orderId: string, vendor: Vendor) => {
@@ -57,7 +74,7 @@ const AdminDashboard: React.FC = () => {
                     order.id === orderId ? updatedOrder : order
                 )
             );
-            handleCloseModal();
+            handleCloseAssignModal();
             alert(`Successfully assigned ${vendor.name} to order ${orderId}.`);
         } catch (err) {
             alert('Failed to assign pilot. Please try again.');
@@ -98,7 +115,7 @@ const AdminDashboard: React.FC = () => {
                                             <th className="p-4 font-semibold">Route</th>
                                             <th className="p-4 font-semibold">Pickup</th>
                                             <th className="p-4 font-semibold">Status</th>
-                                            <th className="p-4 font-semibold">Actions</th>
+                                            <th className="p-4 font-semibold text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -115,20 +132,30 @@ const AdminDashboard: React.FC = () => {
                                                 <td className="p-4">
                                                      <span className={`px-2 py-1 text-xs font-bold rounded-full ${
                                                         order.status === OrderStatus.Assigned ? 'bg-cyan-100 text-cyan-800' :
-                                                        order.status === OrderStatus.New ? 'bg-green-100 text-green-800' :
+                                                        order.status === OrderStatus.New ? 'bg-emerald-100 text-emerald-800' :
                                                         order.status === OrderStatus.InProgress ? 'bg-blue-100 text-blue-800' :
                                                         'bg-yellow-100 text-yellow-800'
                                                     }`}>{order.status}</span>
                                                 </td>
                                                 <td className="p-4">
-                                                    {(order.status === OrderStatus.New || order.status === OrderStatus.PendingAssignment) && (
-                                                    <button 
-                                                        onClick={() => handleOpenModal(order)}
-                                                        className="bg-primary hover:bg-primary-700 text-white font-bold py-1 px-3 rounded-md text-sm"
-                                                    >
-                                                        Assign Pilot
-                                                    </button>
-                                                    )}
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button 
+                                                            onClick={() => handleOpenDetailsModal(order)}
+                                                            className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md"
+                                                            aria-label="View Details"
+                                                            title="View Details"
+                                                        >
+                                                            <Eye size={16}/>
+                                                        </button>
+                                                        {(order.status === OrderStatus.New || order.status === OrderStatus.PendingAssignment) && (
+                                                        <button 
+                                                            onClick={() => handleOpenAssignModal(order)}
+                                                            className="bg-primary hover:bg-primary-700 text-white font-bold py-1 px-3 rounded-md text-sm"
+                                                        >
+                                                            Assign Pilot
+                                                        </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -171,12 +198,21 @@ const AdminDashboard: React.FC = () => {
                     </Card>
                 </div>
             </div>
-            {isModalOpen && selectedOrder && (
+
+            {isAssignModalOpen && selectedOrderForAssign && (
                 <AssignPilotModal 
-                    order={selectedOrder} 
+                    order={selectedOrderForAssign} 
                     vendors={vendors.filter(v => v.availability === 'Available')}
-                    onClose={handleCloseModal}
+                    onClose={handleCloseAssignModal}
                     onAssign={handleAssignPilot}
+                />
+            )}
+
+            {isDetailsModalOpen && selectedOrderForDetails && (
+                <OrderDetailsModal
+                    order={selectedOrderForDetails}
+                    assignedVendor={selectedOrderForDetails.assignedVendorId ? vendorMap[selectedOrderForDetails.assignedVendorId] : null}
+                    onClose={handleCloseDetailsModal}
                 />
             )}
         </>

@@ -16,9 +16,9 @@ let orders: PilotOrder[] = [
 ];
 
 let vendors: Vendor[] = [
-    { id: 'vendor1', name: 'Safe Escorts LLC', services: [PilotService.ChaseLead, PilotService.HeightPole], location: {lat: 30.26, lng: -97.74, timestamp: '5 mins ago'}, availability: 'Available', rating: 4.8 },
-    { id: 'vendor2', name: 'Road Guardians', services: [PilotService.Steer], location: {lat: 29.76, lng: -95.36, timestamp: '12 mins ago'}, availability: 'Available', rating: 4.5 },
-    { id: 'vendor3', name: 'Tall Load Pros', services: [PilotService.HeightPole, PilotService.RouteSurvey], location: {lat: 32.77, lng: -96.79, timestamp: '1 hour ago'}, availability: 'Unavailable', rating: 4.9 },
+    { id: 'vendor1', name: 'Jane Smith', companyName: 'Safe Escorts LLC', email: 'vendor@pilot.com', services: [PilotService.ChaseLead, PilotService.HeightPole], location: {lat: 30.26, lng: -97.74, timestamp: '5 mins ago'}, availability: 'Available', rating: 4.8, address: '123 Pilot Rd, Austin, TX 78701' },
+    { id: 'vendor2', name: 'Road Guardians', companyName: 'Road Guardians', email: 'contact@roadguardians.com', services: [PilotService.Steer], location: {lat: 29.76, lng: -95.36, timestamp: '12 mins ago'}, availability: 'Available', rating: 4.5, address: '456 Escort Ave, Houston, TX 77002' },
+    { id: 'vendor3', name: 'Tall Load Pros', companyName: 'Tall Load Pros', email: 'info@tallloadpros.com', services: [PilotService.HeightPole, PilotService.RouteSurvey], location: {lat: 32.77, lng: -96.79, timestamp: '1 hour ago'}, availability: 'Unavailable', rating: 4.9, address: '789 Survey St, Dallas, TX 75201' },
 ];
 
 // --- API FUNCTIONS ---
@@ -40,6 +40,20 @@ export const mockApi = {
     }
     const newUser: User = { ...userData, id: `user_${Date.now()}` };
     users.push(newUser);
+    // If a new vendor registers, add them to the vendors list too
+    if (newUser.role === UserRole.Vendor) {
+        vendors.push({
+            id: newUser.id,
+            name: newUser.name,
+            companyName: newUser.companyName || 'N/A',
+            email: newUser.email,
+            services: [],
+            location: { lat: 0, lng: 0, timestamp: 'Never' },
+            availability: 'Unavailable',
+            rating: 0,
+            address: 'Not specified'
+        });
+    }
     return newUser;
   },
   
@@ -77,6 +91,12 @@ export const mockApi = {
       return vendors;
   },
 
+  getVendorById: async (vendorId: string): Promise<Vendor | null> => {
+    await sleep(100); // Quick lookup
+    const vendor = vendors.find(v => v.id === vendorId);
+    return vendor || null;
+  },
+
   assignPilotToOrder: async (orderId: string, vendor: Vendor): Promise<PilotOrder> => {
       await sleep(600);
       const orderIndex = orders.findIndex(o => o.id === orderId);
@@ -90,5 +110,20 @@ export const mockApi = {
           // In a real app, the rate would be negotiated and updated here
       };
       return orders[orderIndex];
+  },
+  
+  getAvailableLoads: async (): Promise<PilotOrder[]> => {
+    await sleep(600);
+    return orders.filter(o => o.status === OrderStatus.New || o.status === OrderStatus.PendingAssignment);
+  },
+
+  updateVendorProfile: async (vendorId: string, profileData: Partial<Vendor>): Promise<Vendor> => {
+    await sleep(700);
+    const vendorIndex = vendors.findIndex(v => v.id === vendorId);
+    if (vendorIndex === -1) {
+        throw new Error("Vendor not found");
+    }
+    vendors[vendorIndex] = { ...vendors[vendorIndex], ...profileData };
+    return vendors[vendorIndex];
   }
 };
