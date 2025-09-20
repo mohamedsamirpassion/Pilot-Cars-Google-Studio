@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { X, Star } from 'lucide-react';
-import { PilotOrder, Vendor } from '../../types';
+import { PilotOrder, Vendor, VendorAvailability } from '../../types';
 
 interface AssignPilotModalProps {
   order: PilotOrder;
@@ -9,7 +9,25 @@ interface AssignPilotModalProps {
   onAssign: (orderId: string, vendor: Vendor) => void;
 }
 
+const getStatusAppearance = (status: VendorAvailability) => {
+    switch (status) {
+        case VendorAvailability.Available: return 'bg-green-100 text-green-800';
+        case VendorAvailability.OnLoad: return 'bg-blue-100 text-blue-800';
+        case VendorAvailability.Unavailable: return 'bg-slate-200 text-slate-600';
+        default: return 'bg-slate-100 text-slate-800';
+    }
+}
+
 const AssignPilotModal: React.FC<AssignPilotModalProps> = ({ order, vendors, onClose, onAssign }) => {
+
+  const sortedVendors = useMemo(() => {
+    return [...vendors].sort((a, b) => {
+        if (a.availability === VendorAvailability.Available && b.availability !== VendorAvailability.Available) return -1;
+        if (a.availability !== VendorAvailability.Available && b.availability === VendorAvailability.Available) return 1;
+        return 0; // Keep original order for same-status vendors
+    });
+  }, [vendors]);
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -43,20 +61,26 @@ const AssignPilotModal: React.FC<AssignPilotModalProps> = ({ order, vendors, onC
             <div>
                 <h3 className="font-semibold text-slate-700 mb-2">Available Vendors</h3>
                 <div className="space-y-3">
-                    {vendors.length > 0 ? vendors.map(vendor => (
+                    {sortedVendors.length > 0 ? sortedVendors.map(vendor => (
                         <div key={vendor.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors">
-                            <div>
-                                <p className="font-semibold">{vendor.name}</p>
-                                <div className="flex items-center gap-2 text-sm text-slate-500">
-                                    <Star size={14} className="text-yellow-500 fill-current" />
-                                    <span>{vendor.rating}</span>
-                                    <span>&bull;</span>
-                                    <span>5 miles away</span> 
+                            <div className="flex items-center gap-3">
+                                <div>
+                                    <p className="font-semibold">{vendor.name}</p>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                                        <Star size={14} className="text-yellow-500 fill-current" />
+                                        <span>{vendor.rating}</span>
+                                        <span>&bull;</span>
+                                        <span>5 miles away</span> 
+                                    </div>
                                 </div>
+                                <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${getStatusAppearance(vendor.availability)}`}>
+                                    {vendor.availability}
+                                </span>
                             </div>
                             <button 
                                 onClick={() => onAssign(order.id, vendor)}
-                                className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-4 rounded-md text-sm"
+                                className="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-4 rounded-md text-sm disabled:bg-slate-400"
+                                disabled={vendor.availability !== VendorAvailability.Available}
                             >
                                 Assign
                             </button>

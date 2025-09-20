@@ -32,6 +32,7 @@ export enum PilotService {
 export enum OrderStatus {
   New = 'New',
   PendingAssignment = 'Pending Assignment',
+  PendingReview = 'Pending Review',
   Assigned = 'Assigned',
   InProgress = 'In Progress',
   Completed = 'Completed',
@@ -54,10 +55,24 @@ export interface PilotOrder {
   assignedDispatcherId?: string;
 }
 
+export enum VendorAvailability {
+  Available = 'Available',
+  OnLoad = 'On a Load',
+  Unavailable = 'Unavailable',
+}
+
+export interface Credential {
+    id: string;
+    name: string;
+    expiryDate?: string;
+}
+
 export interface Vendor extends User {
   address?: string;
   services: PilotService[];
   rating: number;
+  availability: VendorAvailability;
+  credentials?: Credential[];
 }
 
 export enum PermitStatus {

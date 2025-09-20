@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../Card';
-import { MapPin, Bell, ListChecks, ChevronsRight, CheckCircle, XCircle, Loader, Briefcase, Edit } from 'lucide-react';
-import { PilotOrder, OrderStatus, Vendor } from '../../types';
+import { Bell, ListChecks, ChevronsRight, CheckCircle, XCircle, Loader, Briefcase, Edit, UserCheck } from 'lucide-react';
+import { PilotOrder, OrderStatus, Vendor, VendorAvailability } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { mockApi } from '../../api/mockApi';
 import OrderDetailsModal from './OrderDetailsModal';
 import AvailableLoadsModal from './AvailableLoadsModal';
 import UpdateProfileModal from './UpdateProfileModal';
 
+const isCredentialExpired = (dateString?: string): boolean => {
+    if (!dateString) return true; // Consider credentials without a date as expired/invalid
+    // Compare dates without timezones for simplicity
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiryDate = new Date(dateString);
+    expiryDate.setHours(0,0,0,0);
+    return expiryDate < today;
+};
+
 const VendorDashboard: React.FC = () => {
     const { user } = useAuth();
-    // Local UI state
-    const [isSharing, setIsSharing] = useState(false);
     
     // Data state
     const [assignedLoads, setAssignedLoads] = useState<PilotOrder[]>([]);
@@ -87,6 +95,22 @@ const VendorDashboard: React.FC = () => {
         }
     };
 
+    const handleAvailabilityChange = async (newStatus: VendorAvailability) => {
+        if (!vendorProfile) return;
+
+        // Optimistic UI update
+        const originalProfile = vendorProfile;
+        setVendorProfile({ ...vendorProfile, availability: newStatus });
+        
+        try {
+            await mockApi.updateVendorAvailability(vendorProfile.id, newStatus);
+        } catch (error) {
+            alert('Failed to update status. Please try again.');
+            // Revert on failure
+            setVendorProfile(originalProfile);
+        }
+    };
+
     return (
         <>
             <div className="space-y-8">
@@ -94,20 +118,24 @@ const VendorDashboard: React.FC = () => {
                     {/* Share Location Card */}
                     <Card className="h-full">
                         <CardContent className="flex flex-col items-center justify-center text-center">
-                            <MapPin className="h-12 w-12 text-primary mb-2" />
-                            <h3 className="text-xl font-semibold mb-3">Share Location</h3>
-                            <p className="text-slate-500 mb-4">Let dispatchers know you're available for loads.</p>
-                            <button 
-                                onClick={() => setIsSharing(!isSharing)}
-                                className={`w-full font-bold py-2 px-4 rounded-lg transition-colors ${
-                                    isSharing 
-                                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                                    : 'bg-green-500 hover:bg-green-600 text-white'
-                                }`}
-                            >
-                                {isSharing ? 'Stop Sharing' : 'Start Sharing'}
-                            </button>
-                            {isSharing && <p className="text-xs text-green-600 mt-2 font-medium">Location shared: Austin, TX (as of 2 mins ago)</p>}
+                            <UserCheck className="h-12 w-12 text-primary mb-2" />
+                            <h3 className="text-xl font-semibold mb-3">Set Your Availability</h3>
+                            <p className="text-slate-500 mb-4 text-sm">Let dispatchers know your current status for new loads.</p>
+                            <div className="w-full bg-slate-100 rounded-lg p-1 flex gap-1">
+                                {Object.values(VendorAvailability).map(status => (
+                                    <button
+                                        key={status}
+                                        onClick={() => handleAvailabilityChange(status)}
+                                        className={`w-full font-bold py-2 px-2 text-sm rounded-md transition-all ${
+                                            vendorProfile?.availability === status
+                                                ? 'bg-primary text-white shadow'
+                                                : 'text-slate-600 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {status}
+                                    </button>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                     
@@ -129,8 +157,16 @@ const VendorDashboard: React.FC = () => {
                             <ListChecks className="mx-auto h-12 w-12 text-primary mb-2" />
                             <h3 className="text-xl font-semibold">Profile & Credentials</h3>
                             <div className="space-y-2 mt-4 text-left text-sm">
-                                <p className="flex items-center gap-2"><CheckCircle size={16} className="text-green-500"/> Insurance: Active</p>
-                                <p className="flex items-center gap-2"><XCircle size={16} className="text-red-500"/> LA Permit: Expired</p>
+                                {vendorProfile?.credentials?.map(cred => {
+                                    const expired = isCredentialExpired(cred.expiryDate);
+                                    return (
+                                        <p key={cred.id} className="flex items-center gap-2">
+                                            {expired ? <XCircle size={16} className="text-red-500"/> : <CheckCircle size={16} className="text-green-500"/>}
+                                            {cred.name}: <span className={expired ? 'font-bold text-red-600' : 'text-green-700'}>{expired ? 'Expired' : 'Active'}</span>
+                                        </p>
+                                    );
+                                })}
+                                {!vendorProfile?.credentials && <p className="text-slate-500">No credentials on file.</p>}
                             </div>
                             <button onClick={handleUpdateProfile} className="mt-4 bg-secondary hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 w-full">
                                 <Edit size={16} /> Update Profile

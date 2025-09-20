@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Card, { CardContent, CardHeader } from '../Card';
 import { PilotOrder, OrderStatus, Vendor } from '../../types';
 import { mockApi } from '../../api/mockApi';
 import { Loader, ChevronsRight, Inbox, Clock } from 'lucide-react';
 import AssignPilotModal from './AssignPilotModal';
+import ReviewAssignmentModal from './admin/ReviewAssignmentModal';
 
 const LeadDispatcherView: React.FC = () => {
     const [newLoads, setNewLoads] = useState<PilotOrder[]>([]);
@@ -11,48 +12,89 @@ const LeadDispatcherView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // Note: In a real app, vendors would be filtered based on proximity, availability, etc.
+    // State for Assign modal
     const [availableVendors, setAvailableVendors] = useState<Vendor[]>([]);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<PilotOrder | null>(null);
+    const [selectedOrderForAssignment, setSelectedOrderForAssignment] = useState<PilotOrder | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [newOrders, pendingOrders] = await Promise.all([
-                    mockApi.getLoadsByStatus([OrderStatus.New]),
-                    mockApi.getLoadsByStatus([OrderStatus.PendingAssignment])
-                ]);
-                setNewLoads(newOrders);
-                setPendingLoads(pendingOrders);
-                 // Mock fetching a few vendors for the assignment modal
-                const vendor = await mockApi.getVendorById('vendor1');
-                setAvailableVendors([vendor]);
-            } catch (err) {
-                setError('Failed to fetch loads.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+    // State for Review modal
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [selectedOrderForReview, setSelectedOrderForReview] = useState<PilotOrder | null>(null);
+
+    const fetchData = useCallback(async () => {
+        try {
+            // setLoading(true); // Don't show full loader on refresh
+            const [newOrders, pendingReviewOrders, allVendors] = await Promise.all([
+                mockApi.getLoadsByStatus([OrderStatus.New]),
+                mockApi.getLoadsByStatus([OrderStatus.PendingReview]),
+                mockApi.getAllVendors()
+            ]);
+            setNewLoads(newOrders);
+            setPendingLoads(pendingReviewOrders);
+            setAvailableVendors(allVendors);
+        } catch (err) {
+            setError('Failed to fetch loads.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    // --- Assign Modal Handlers ---
     const handleOpenAssignModal = (order: PilotOrder) => {
-        setSelectedOrder(order);
+        setSelectedOrderForAssignment(order);
         setIsAssignModalOpen(true);
     };
 
     const handleCloseAssignModal = () => {
         setIsAssignModalOpen(false);
-        setSelectedOrder(null);
+        setSelectedOrderForAssignment(null);
     };
 
     const handleAssign = (orderId: string, vendor: Vendor) => {
         console.log(`Assigning vendor ${vendor.name} to order ${orderId}`);
-        // Here you would make an API call to update the order status and assigned vendor
-        alert(`Vendor ${vendor.name} assigned to order ${orderId}!`);
+        alert(`Vendor ${vendor.name} assigned to order ${orderId}! The order is now pending review.`);
+        // In real app, API call would change status to PendingReview.
+        fetchData(); 
         handleCloseAssignModal();
+    };
+    
+    // --- Review Modal Handlers ---
+    const handleOpenReviewModal = (order: PilotOrder) => {
+        setSelectedOrderForReview(order);
+        setIsReviewModalOpen(true);
+    };
+    
+    const handleCloseReviewModal = () => {
+        setIsReviewModalOpen(false);
+        setSelectedOrderForReview(null);
+    };
+    
+    const handleApprove = async (orderId: string) => {
+        try {
+            await mockApi.approveAssignment(orderId);
+            alert(`Order ${orderId} has been approved and assigned.`);
+            fetchData(); // Refresh data from API
+        } catch (err: any) {
+            alert(`Error approving order: ${err.message}`);
+        } finally {
+            handleCloseReviewModal();
+        }
+    };
+    
+    const handleDecline = async (orderId: string) => {
+        try {
+            await mockApi.declineAssignment(orderId);
+            alert(`Order ${orderId} assignment has been declined. It is now back in the dispatcher's queue.`);
+            fetchData(); // Refresh data from API
+        } catch (err: any) {
+            alert(`Error declining order: ${err.message}`);
+        } finally {
+            handleCloseReviewModal();
+        }
     };
 
 
@@ -78,17 +120,26 @@ const LeadDispatcherView: React.FC = () => {
                         <h2 className="text-2xl font-bold">Loads Pending Review ({pendingLoads.length})</h2>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <OrderTable orders={pendingLoads} onActionClick={(order) => alert(`Reviewing order ${order.id}`)} actionLabel="Review" />
+                        <OrderTable orders={pendingLoads} onActionClick={handleOpenReviewModal} actionLabel="Review" />
                     </CardContent>
                 </Card>
             </div>
             
-            {isAssignModalOpen && selectedOrder && (
+            {isAssignModalOpen && selectedOrderForAssignment && (
                 <AssignPilotModal
-                    order={selectedOrder}
+                    order={selectedOrderForAssignment}
                     vendors={availableVendors}
                     onClose={handleCloseAssignModal}
                     onAssign={handleAssign}
+                />
+            )}
+            
+            {isReviewModalOpen && selectedOrderForReview && (
+                <ReviewAssignmentModal
+                    order={selectedOrderForReview}
+                    onClose={handleCloseReviewModal}
+                    onApprove={handleApprove}
+                    onDecline={handleDecline}
                 />
             )}
         </>

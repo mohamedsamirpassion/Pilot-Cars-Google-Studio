@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
-import { Vendor, PilotService } from '../../types';
+import { Vendor, PilotService, Credential } from '../../types';
 
 interface UpdateProfileModalProps {
   vendor: Vendor;
@@ -18,7 +18,8 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
         companyName: vendor.companyName,
         email: vendor.email,
         address: vendor.address,
-        services: [...vendor.services]
+        services: [...(vendor.services || [])],
+        credentials: vendor.credentials ? vendor.credentials.map(c => ({...c})) : [] // Deep copy
     });
   }, [vendor]);
 
@@ -32,6 +33,15 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
         ? currentServices.filter(s => s !== service)
         : [...currentServices, service];
     setFormData({ ...formData, services: newServices });
+  };
+
+  const handleCredentialChange = (credId: string, newDate: string) => {
+    setFormData(prev => ({
+        ...prev,
+        credentials: (prev.credentials || []).map(cred => 
+            cred.id === credId ? { ...cred, expiryDate: newDate } : cred
+        ),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,13 +71,13 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-4">
+        <div className="p-6 overflow-y-auto space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField label="Contact Name" name="name" value={formData.name} onChange={handleChange} />
-                <InputField label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} />
+                <InputField label="Contact Name" name="name" value={formData.name || ''} onChange={handleChange} />
+                <InputField label="Company Name" name="companyName" value={formData.companyName || ''} onChange={handleChange} />
             </div>
-             <InputField label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} />
-             <InputField label="Address" name="address" value={formData.address} onChange={handleChange} />
+             <InputField label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} />
+             <InputField label="Address" name="address" value={formData.address || ''} onChange={handleChange} />
 
              <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Services Provided</label>
@@ -83,6 +93,27 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
                             <span>{service}</span>
                         </label>
                     ))}
+                </div>
+            </div>
+
+            <div className="p-4 border rounded-lg">
+                <h3 className="text-lg font-semibold text-primary mb-4">Manage Credentials</h3>
+                <div className="space-y-4">
+                    {(formData.credentials || []).map(cred => (
+                         <div key={cred.id} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 items-center">
+                            <label className="font-medium text-slate-700" htmlFor={`cred-${cred.id}`}>{cred.name} Expiry</label>
+                            <input
+                                id={`cred-${cred.id}`}
+                                type="date"
+                                value={cred.expiryDate || ''}
+                                onChange={(e) => handleCredentialChange(cred.id, e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                         </div>
+                    ))}
+                     {(!formData.credentials || formData.credentials.length === 0) && (
+                        <p className="text-sm text-slate-500 text-center">No credentials on file.</p>
+                     )}
                 </div>
             </div>
         </div>

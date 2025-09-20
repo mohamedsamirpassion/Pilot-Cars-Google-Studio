@@ -1,4 +1,4 @@
-import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus } from '../types';
+import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential } from '../types';
 
 // In-memory database
 let users: User[] = [];
@@ -25,8 +25,28 @@ const vendorUser: Vendor = {
     companyName: 'Safe Escorts LLC', 
     services: [PilotService.Lead, PilotService.Chase], 
     rating: 4.8,
-    address: '123 Pilot Rd, Austin, TX'
+    address: '123 Pilot Rd, Austin, TX',
+    availability: VendorAvailability.Available,
+    credentials: [
+        { id: 'ins_1', name: 'Insurance', expiryDate: '2025-12-31' },
+        { id: 'p_la', name: 'LA Permit', expiryDate: '2024-01-15' },
+    ]
 };
+const vendorUser2: Vendor = { 
+    id: 'vendor2', 
+    name: 'Carlos Ray', 
+    email: 'carlos@test.com', 
+    role: UserRole.Vendor, 
+    companyName: 'Ray Route Runners', 
+    services: [PilotService.HighPole, PilotService.Steer], 
+    rating: 4.9,
+    address: '456 Pilot Ln, Dallas, TX',
+    availability: VendorAvailability.OnLoad,
+    credentials: [
+        { id: 'ins_2', name: 'Insurance', expiryDate: '2026-06-30' },
+    ]
+};
+
 
 const leadDispatcherUser: User = { id: 'admin1', name: 'Lead Dispatcher', email: 'lead.dispatcher@pilotcars.com', role: UserRole.LeadDispatcher };
 const dispatcherUser: User = { id: 'admin2', name: 'Dispatcher Bob', email: 'dispatcher@pilotcars.com', role: UserRole.Dispatcher };
@@ -36,8 +56,8 @@ const marketingUser: User = { id: 'admin5', name: 'Marketing Mary', email: 'mark
 const superAdminUser: User = { id: 'admin6', name: 'Super Admin', email: 'super.admin@pilotcars.com', role: UserRole.SuperAdmin };
 
 
-users.push(clientUser, vendorUser, leadDispatcherUser, dispatcherUser, permitAgentUser, supervisorUser, marketingUser, superAdminUser);
-vendors.push(vendorUser);
+users.push(clientUser, vendorUser, vendorUser2, leadDispatcherUser, dispatcherUser, permitAgentUser, supervisorUser, marketingUser, superAdminUser);
+vendors.push(vendorUser, vendorUser2);
 
 const order1: PilotOrder = {
   id: 'order101', client: clientUser, pickupAddress: 'Houston, TX', deliveryAddress: 'Dallas, TX', pickupDate: '2024-08-15', pickupTime: '09:00', services: [PilotService.Lead, PilotService.Chase], driverName: 'Mike', driverPhone: '555-1234', rate: '$1.75/mile', status: OrderStatus.Assigned, assignedVendorId: 'vendor1', assignedDispatcherId: 'admin2'
@@ -51,9 +71,24 @@ const order3: PilotOrder = {
 const order4: PilotOrder = {
   id: 'order104', client: clientUser, pickupAddress: 'Corpus Christi, TX', deliveryAddress: 'Laredo, TX', pickupDate: '2024-08-22', pickupTime: '14:00', services: [PilotService.Steer], driverName: 'Chen', driverPhone: '555-3456', rate: 'Pending', status: OrderStatus.PendingAssignment, assignedDispatcherId: 'admin2'
 };
+const order5: PilotOrder = {
+  id: 'order105', 
+  client: {id: 'client2', name: 'Big Rig Co', email: 'brc@test.com', role: UserRole.Client}, 
+  pickupAddress: 'Amarillo, TX', 
+  deliveryAddress: 'Fort Worth, TX', 
+  pickupDate: '2024-08-25', 
+  pickupTime: '10:00', 
+  services: [PilotService.Lead], 
+  driverName: 'Tom', 
+  driverPhone: '555-4321', 
+  rate: '$1.80/mile (proposed)', 
+  status: OrderStatus.PendingReview,
+  assignedDispatcherId: 'admin2', 
+  assignedVendorId: 'vendor2'
+};
 
 
-orders.push(order1, order2, order3, order4);
+orders.push(order1, order2, order3, order4, order5);
 
 permits.push(
     { id: 'p001', clientId: 'client1', clientName: 'Heavy Haulers Inc.', state: 'Texas', submittedDate: '2024-08-10', status: PermitStatus.Issued },
@@ -86,7 +121,7 @@ export const mockApi = {
         };
         users.push(newUser);
         if (newUser.role === UserRole.Vendor) {
-            const newVendor: Vendor = { ...newUser, services: [], rating: 5.0, address: '' };
+            const newVendor: Vendor = { ...newUser, services: [], rating: 5.0, address: '', availability: VendorAvailability.Available };
             vendors.push(newVendor);
         }
         resolve(newUser);
@@ -124,6 +159,14 @@ export const mockApi = {
       });
   },
   
+  getAllVendors: async (): Promise<Vendor[]> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(vendors);
+        }, 300);
+    });
+  },
+
   getLoadsByStatus: async(statuses: OrderStatus[]): Promise<PilotOrder[]> => {
     return new Promise((resolve) => {
         setTimeout(() => {
@@ -182,5 +225,48 @@ export const mockApi = {
               }
           }, 500);
       });
+  },
+  
+  updateVendorAvailability: async (vendorId: string, availability: VendorAvailability): Promise<Vendor> => {
+      return new Promise((resolve, reject) => {
+          setTimeout(() => {
+              const vendorIndex = vendors.findIndex(v => v.id === vendorId);
+              if (vendorIndex > -1) {
+                  vendors[vendorIndex].availability = availability;
+                  resolve(vendors[vendorIndex]);
+              } else {
+                  reject(new Error('Vendor not found'));
+              }
+          }, 300);
+      });
+  },
+
+  approveAssignment: async (orderId: string): Promise<PilotOrder> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex > -1) {
+          orders[orderIndex].status = OrderStatus.Assigned;
+          resolve(orders[orderIndex]);
+        } else {
+          reject(new Error('Order not found'));
+        }
+      }, 500);
+    });
+  },
+
+  declineAssignment: async (orderId: string): Promise<PilotOrder> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const orderIndex = orders.findIndex(o => o.id === orderId);
+        if (orderIndex > -1) {
+          orders[orderIndex].status = OrderStatus.PendingAssignment;
+          orders[orderIndex].assignedVendorId = undefined;
+          resolve(orders[orderIndex]);
+        } else {
+          reject(new Error('Order not found'));
+        }
+      }, 500);
+    });
   }
 };
