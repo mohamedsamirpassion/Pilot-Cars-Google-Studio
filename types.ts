@@ -99,3 +99,15 @@ export interface Permit {
   submittedDate: string;
   status: PermitStatus;
 }
+
+export interface BlogPost {
+  id: string;
+  slug: string; // URL-friendly version of the title
+  title: string;
+  content: string; // HTML content
+  excerpt: string; // Short summary for SEO and list views
+  authorId: string;
+  authorName: string;
+  publishDate: string; // ISO 8601 format
+  tags?: string[];
+}

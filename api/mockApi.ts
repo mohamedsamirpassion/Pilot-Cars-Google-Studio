@@ -1,12 +1,60 @@
-import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential, Location } from '../types';
+import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential, Location, BlogPost } from '../types';
 
 // In-memory database
 let users: User[] = [];
 let orders: PilotOrder[] = [];
 let vendors: Vendor[] = [];
 let permits: Permit[] = [];
+let posts: BlogPost[] = [];
 
 // --- Seeding Initial Data ---
+const marketingUser: User = { id: 'admin5', name: 'Marketing Mary', email: 'marketing@pilotcars.com', role: UserRole.ContentMarketing };
+
+// Helper to create slugs
+const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+
+
+posts.push(
+    {
+        id: 'post1',
+        slug: 'navigating-oversize-load-regulations-a-beginners-guide',
+        title: 'Navigating Oversize Load Regulations: A Beginner\'s Guide',
+        excerpt: 'Understanding the complex web of state and federal regulations for oversize loads can be daunting. This guide breaks down the essentials for trucking companies.',
+        authorId: marketingUser.id,
+        authorName: marketingUser.name,
+        publishDate: '2024-08-10T10:00:00Z',
+        content: `
+            <p>Transporting an oversize load involves more than just driving from point A to point B. It requires careful planning, adherence to strict regulations, and coordination with various authorities. For newcomers, this can seem overwhelming. Here’s a breakdown of the key areas you need to focus on.</p>
+            <h2 class="text-2xl font-bold my-4">1. Understanding State vs. Federal Rules</h2>
+            <p>While the federal government sets overall guidelines for the National Network of highways, most of the specific regulations you'll encounter are at the state level. Each state has its own Department of Transportation (DOT) with unique rules for dimensions, weight, and required escorts.</p>
+            <h2 class="text-2xl font-bold my-4">2. The Permitting Process</h2>
+            <p>Before you move, you'll need an oversize/overweight permit for every state you travel through. This process involves submitting detailed information about your truck, trailer, and load, as well as the specific route you plan to take.</p>
+            <p class="mt-2"><strong>Key Tip:</strong> Apply for permits well in advance. Some states can take several days to process applications, especially for complex loads.</p>
+            <h2 class="text-2xl font-bold my-4">3. When Are Pilot Cars Required?</h2>
+            <p>The need for pilot cars (or escort vehicles) is determined by the dimensions of your load and the specific regulations of the state. Generally, the wider, longer, or taller your load, the more likely you are to need one or more escorts. For example, a load exceeding 12 feet in width on a two-lane highway will almost always require a lead or chase vehicle.</p>
+        `
+    },
+    {
+        id: 'post2',
+        slug: '5-things-to-look-for-in-a-professional-pilot-car-service',
+        title: '5 Things to Look for in a Professional Pilot Car Service',
+        excerpt: 'Not all pilot car services are created equal. Choosing the right partner is crucial for the safety and success of your haul. Here are five key qualities to look for.',
+        authorId: marketingUser.id,
+        authorName: marketingUser.name,
+        publishDate: '2024-07-25T14:30:00Z',
+        content: `
+            <p>A reliable pilot car service is one of the most critical components of a successful oversize load transport. They are your eyes and ears on the road, ensuring safety for your driver and the public. Here’s what to look for when choosing an escort provider.</p>
+            <ol class="list-decimal list-inside space-y-2 my-4">
+                <li><strong>Proper Certification and Insurance:</strong> Ask for proof of certification (like UTAC or state-specific certs) and at least $1 million in liability insurance.</li>
+                <li><strong>Well-Maintained Equipment:</strong> The escort vehicle should be clean, professional, and equipped with the correct signage, lights, and communication tools.</li>
+                <li><strong>Experienced Operators:</strong> An experienced pilot car operator knows how to manage traffic, communicate effectively with the truck driver, and anticipate potential hazards.</li>
+                <li><strong>Knowledge of Regulations:</strong> Your escort should be familiar with the specific rules and curfews for the states on your route.</li>
+                <li><strong>Excellent Communication Skills:</strong> Clear, concise communication between the pilot car and the truck is non-negotiable for safety.</li>
+            </ol>
+            <p>Vetting your pilot car service thoroughly beforehand can save you from costly delays, fines, and accidents on the road.</p>
+        `
+    }
+);
 
 const clientUser: User = { 
     id: 'client1', 
@@ -53,7 +101,7 @@ const leadDispatcherUser: User = { id: 'admin1', name: 'Lead Dispatcher', email:
 const dispatcherUser: User = { id: 'admin2', name: 'Dispatcher Bob', email: 'dispatcher@pilotcars.com', role: UserRole.Dispatcher };
 const permitAgentUser: User = { id: 'admin3', name: 'Permit Agent Pam', email: 'permit.agent@pilotcars.com', role: UserRole.PermitAgent };
 const supervisorUser: User = { id: 'admin4', name: 'Supervisor Sam', email: 'supervisor@pilotcars.com', role: UserRole.Supervisor };
-const marketingUser: User = { id: 'admin5', name: 'Marketing Mary', email: 'marketing@pilotcars.com', role: UserRole.ContentMarketing };
+
 const superAdminUser: User = { id: 'admin6', name: 'Super Admin', email: 'super.admin@pilotcars.com', role: UserRole.SuperAdmin };
 
 
@@ -319,5 +367,43 @@ export const mockApi = {
         }
       }, 300);
     });
-  }
+  },
+
+  // --- Blog API ---
+  getAllPosts: async (): Promise<BlogPost[]> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // Return sorted by most recent date
+        resolve([...posts].sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()));
+      }, 400);
+    });
+  },
+
+  getPostBySlug: async (slug: string): Promise<BlogPost> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const post = posts.find(p => p.slug === slug);
+        if (post) {
+          resolve(post);
+        } else {
+          reject(new Error('Post not found'));
+        }
+      }, 300);
+    });
+  },
+
+  createPost: async (postData: Omit<BlogPost, 'id' | 'slug' | 'publishDate'>): Promise<BlogPost> => {
+      return new Promise(resolve => {
+          setTimeout(() => {
+              const newPost: BlogPost = {
+                  ...postData,
+                  id: `post${posts.length + 1}`,
+                  slug: slugify(postData.title),
+                  publishDate: new Date().toISOString(),
+              };
+              posts.push(newPost);
+              resolve(newPost);
+          }, 500);
+      });
+  },
 };

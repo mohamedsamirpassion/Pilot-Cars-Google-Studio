@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +20,9 @@ const Header: React.FC = () => {
           <span>Pilot Cars & Permits</span>
         </Link>
         <nav className="flex items-center gap-4">
+          <Link to="/blog" className="text-slate-700 hover:text-primary transition-colors font-medium">
+            Blog
+          </Link>
           {user ? (
             <>
               <span className="text-slate-600 hidden sm:block">Welcome, {user.name}!</span>

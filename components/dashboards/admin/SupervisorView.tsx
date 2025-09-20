@@ -4,8 +4,9 @@ import { PilotOrder, Permit } from '../../../types';
 import { mockApi } from '../../../api/mockApi';
 import { Loader } from 'lucide-react';
 import LeadDispatcherDashboard from './LeadDispatcherDashboard';
+import VendorMapView from './VendorMapView';
 
-type Tab = 'dispatch' | 'permits';
+type Tab = 'dispatch' | 'permits' | 'map';
 
 const OperationsOverview: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dispatch');
@@ -33,11 +34,30 @@ const OperationsOverview: React.FC = () => {
     fetchData();
   }, []);
 
+  const renderContent = () => {
+    if (loading) {
+      return <div className="flex justify-center items-center p-16"><Loader className="animate-spin text-primary" size={48} /></div>;
+    }
+    if (error) {
+       return <p className="p-8 text-center text-red-600">{error}</p>;
+    }
+    switch(activeTab) {
+        case 'dispatch':
+            return <div className="overflow-x-auto"><DispatchTable loads={loads} /></div>;
+        case 'permits':
+            return <div className="overflow-x-auto"><PermitsTable permits={permits} /></div>;
+        case 'map':
+            return <VendorMapView />; // Render the map view directly
+        default:
+            return null;
+    }
+  }
+
   return (
     <Card>
       <div className="p-4 border-b">
         <h2 className="text-2xl font-bold mb-4">Operations Overview (Supervisor)</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <TabButton
             label="Dispatch Operations"
             isActive={activeTab === 'dispatch'}
@@ -48,18 +68,15 @@ const OperationsOverview: React.FC = () => {
             isActive={activeTab === 'permits'}
             onClick={() => setActiveTab('permits')}
           />
+           <TabButton
+            label="Live Map"
+            isActive={activeTab === 'map'}
+            onClick={() => setActiveTab('map')}
+          />
         </div>
       </div>
       <CardContent className="p-0">
-        {loading ? (
-            <div className="flex justify-center items-center p-16"><Loader className="animate-spin text-primary" size={48} /></div>
-        ) : error ? (
-            <p className="p-8 text-center text-red-600">{error}</p>
-        ) : (
-            <div className="overflow-x-auto">
-                {activeTab === 'dispatch' ? <DispatchTable loads={loads} /> : <PermitsTable permits={permits} />}
-            </div>
-        )}
+        {renderContent()}
       </CardContent>
     </Card>
   );
@@ -125,8 +142,8 @@ const PermitsTable: React.FC<{permits: Permit[]}> = ({ permits }) => (
 const SupervisorView: React.FC = () => {
     return (
         <div className="space-y-8">
-            <LeadDispatcherDashboard />
             <OperationsOverview />
+            <LeadDispatcherDashboard />
         </div>
     );
 };

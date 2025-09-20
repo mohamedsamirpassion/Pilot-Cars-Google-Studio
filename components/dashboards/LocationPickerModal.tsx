@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { X, MapPin, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
+// FIX: Import `MapMouseEvent` to use for the map click handler.
+import type { MapMouseEvent } from '@vis.gl/react-google-maps';
+import GoogleMap, { Marker, MarkerPin } from '../GoogleMap';
 
 interface LocationPickerModalProps {
   onClose: () => void;
@@ -7,21 +10,13 @@ interface LocationPickerModalProps {
 }
 
 const LocationPickerModal: React.FC<LocationPickerModalProps> = ({ onClose, onLocationSelect }) => {
-  const [pinPosition, setPinPosition] = useState<{ x: number; y: number } | null>(null);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // In a real map, you'd convert pixel coordinates to lat/lng.
-    // Here, we'll just simulate it.
-    const mockLat = 50 - (y / rect.height) * 25; // Example range: 25 to 50
-    const mockLng = -120 + (x / rect.width) * 50; // Example range: -70 to -120
-
-    setPinPosition({ x, y });
-    setSelectedCoords({ lat: mockLat, lng: mockLng });
+  
+  // FIX: Replaced `google.maps.MapMouseEvent` with the correct `MapMouseEvent` type and updated property access from `e.latLng` to `e.detail.latLng`.
+  const handleMapClick = (e: MapMouseEvent) => {
+    if (e.detail.latLng) {
+      setSelectedCoords({ lat: e.detail.latLng.lat(), lng: e.detail.latLng.lng() });
+    }
   };
   
   const handleConfirm = () => {
@@ -49,20 +44,23 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({ onClose, onLo
           </button>
         </div>
         
-        <div className="flex-grow p-4 relative" onClick={handleMapClick}>
-            <img 
-                src="https://images.unsplash.com/photo-1567114631382-fa58a4356a52?q=80&w=2532&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                alt="Map of the USA"
-                className="absolute inset-0 w-full h-full object-cover rounded-b-lg cursor-pointer"
-            />
-             {pinPosition && (
-                <div 
-                    className="absolute" 
-                    style={{ left: `${pinPosition.x}px`, top: `${pinPosition.y}px`, transform: 'translate(-50%, -100%)' }}
-                >
-                    <MapPin className="h-10 w-10 text-red-500 fill-current drop-shadow-lg" />
-                </div>
-            )}
+        <div className="flex-grow relative">
+            <GoogleMap
+                center={{ lat: 39.82, lng: -98.57 }} // Center of USA
+                zoom={4}
+                onClick={handleMapClick}
+                className="w-full h-full"
+            >
+                {selectedCoords && (
+                    <Marker position={selectedCoords}>
+                        <MarkerPin
+                            background={'#ef4444'}
+                            borderColor={'#b91c1c'}
+                            glyphColor={'#ffffff'}
+                        />
+                    </Marker>
+                )}
+            </GoogleMap>
         </div>
 
         <div className="p-4 bg-slate-50 border-t flex justify-between items-center">
@@ -78,7 +76,7 @@ const LocationPickerModal: React.FC<LocationPickerModalProps> = ({ onClose, onLo
             </button>
             <button 
                 onClick={handleConfirm} 
-                disabled={!pinPosition}
+                disabled={!selectedCoords}
                 className="bg-primary hover:bg-primary-700 text-white font-bold py-2 px-6 rounded-lg flex items-center gap-2 disabled:bg-slate-400 disabled:cursor-not-allowed"
             >
                 <Check size={18}/> Confirm Location
