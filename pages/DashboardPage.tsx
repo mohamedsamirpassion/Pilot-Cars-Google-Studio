@@ -1,35 +1,34 @@
-
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
 import ClientDashboard from '../components/dashboards/ClientDashboard';
 import VendorDashboard from '../components/dashboards/VendorDashboard';
-import AdminDashboard from '../components/dashboards/AdminDashboard';
+import AdminRouter from './admin/AdminRouter';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div className="text-center">Loading user data...</div>;
   }
-
-  const renderDashboard = () => {
-    switch (user.role) {
-      case UserRole.Client:
-        return <ClientDashboard />;
-      case UserRole.Vendor:
-        return <VendorDashboard />;
-      default: // All admin roles
-        return <AdminDashboard />;
-    }
-  };
+  
+  const isAdminRole = [
+      UserRole.LeadDispatcher, 
+      UserRole.Dispatcher, 
+      UserRole.Supervisor, 
+      UserRole.PermitAgent,
+      UserRole.ContentMarketing,
+      UserRole.SuperAdmin,
+  ].includes(user.role);
 
   return (
     <div>
-      <h1 className="text-4xl font-bold mb-6">
-        Welcome to your Dashboard, <span className="text-primary">{user.name}</span>!
-      </h1>
-      {renderDashboard()}
+      <h1 className="text-4xl font-bold text-slate-800 mb-2">Dashboard</h1>
+      <p className="text-lg text-slate-500 mb-8">Welcome back, {user.name}!</p>
+      
+      {user.role === UserRole.Client && <ClientDashboard />}
+      {user.role === UserRole.Vendor && <VendorDashboard />}
+      {isAdminRole && <AdminRouter />}
     </div>
   );
 };

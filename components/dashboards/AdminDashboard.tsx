@@ -1,222 +1,138 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../Card';
-import { Layers, Map, UserCheck, Plus, Search, Loader, Eye } from 'lucide-react';
-import { PilotOrder, Vendor, OrderStatus } from '../../types';
-import AssignPilotModal from './AssignPilotModal';
-import OrderDetailsModal from './OrderDetailsModal';
+import { PilotOrder, OrderStatus, Vendor } from '../../types';
 import { mockApi } from '../../api/mockApi';
+import { Loader, ChevronsRight, Inbox, Clock } from 'lucide-react';
+import AssignPilotModal from './AssignPilotModal';
 
-const AdminDashboard: React.FC = () => {
-    const [orders, setOrders] = useState<PilotOrder[]>([]);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
+const LeadDispatcherView: React.FC = () => {
+    const [newLoads, setNewLoads] = useState<PilotOrder[]>([]);
+    const [pendingLoads, setPendingLoads] = useState<PilotOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
-    // State for Assign Pilot Modal
+    // Note: In a real app, vendors would be filtered based on proximity, availability, etc.
+    const [availableVendors, setAvailableVendors] = useState<Vendor[]>([]);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-    const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<PilotOrder | null>(null);
-
-    // State for View Details Modal
-    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-    const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<PilotOrder | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<PilotOrder | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [fetchedOrders, fetchedVendors] = await Promise.all([
-                    mockApi.getAllOrders(),
-                    mockApi.getAllVendors()
+                const [newOrders, pendingOrders] = await Promise.all([
+                    mockApi.getLoadsByStatus([OrderStatus.New]),
+                    mockApi.getLoadsByStatus([OrderStatus.PendingAssignment])
                 ]);
-                setOrders(fetchedOrders);
-                setVendors(fetchedVendors);
+                setNewLoads(newOrders);
+                setPendingLoads(pendingOrders);
+                 // Mock fetching a few vendors for the assignment modal
+                const vendor = await mockApi.getVendorById('vendor1');
+                setAvailableVendors([vendor]);
             } catch (err) {
-                setError('Failed to fetch dashboard data.');
+                setError('Failed to fetch loads.');
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
     }, []);
-    
-    const vendorMap = useMemo(() => {
-        return vendors.reduce((acc, vendor) => {
-            acc[vendor.id] = vendor;
-            return acc;
-        }, {} as Record<string, Vendor>);
-    }, [vendors]);
 
     const handleOpenAssignModal = (order: PilotOrder) => {
-        setSelectedOrderForAssign(order);
+        setSelectedOrder(order);
         setIsAssignModalOpen(true);
     };
 
     const handleCloseAssignModal = () => {
         setIsAssignModalOpen(false);
-        setSelectedOrderForAssign(null);
-    };
-    
-    const handleOpenDetailsModal = (order: PilotOrder) => {
-        setSelectedOrderForDetails(order);
-        setIsDetailsModalOpen(true);
+        setSelectedOrder(null);
     };
 
-    const handleCloseDetailsModal = () => {
-        setIsDetailsModalOpen(false);
-        setSelectedOrderForDetails(null);
+    const handleAssign = (orderId: string, vendor: Vendor) => {
+        console.log(`Assigning vendor ${vendor.name} to order ${orderId}`);
+        // Here you would make an API call to update the order status and assigned vendor
+        alert(`Vendor ${vendor.name} assigned to order ${orderId}!`);
+        handleCloseAssignModal();
     };
 
-    const handleAssignPilot = async (orderId: string, vendor: Vendor) => {
-        try {
-            const updatedOrder = await mockApi.assignPilotToOrder(orderId, vendor);
-            setOrders(prevOrders =>
-                prevOrders.map(order =>
-                    order.id === orderId ? updatedOrder : order
-                )
-            );
-            handleCloseAssignModal();
-            alert(`Successfully assigned ${vendor.name} to order ${orderId}.`);
-        } catch (err) {
-            alert('Failed to assign pilot. Please try again.');
-        }
-    };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <Loader className="animate-spin text-primary" size={48} />
-            </div>
-        );
-    }
-
-    if (error) {
-        return <p className="text-center text-red-600">{error}</p>;
-    }
+    if (loading) return <div className="flex justify-center items-center p-16"><Loader className="animate-spin text-primary" size={48} /></div>;
+    if (error) return <p className="p-8 text-center text-red-600">{error}</p>;
 
     return (
         <>
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Content: Load Management */}
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold">Load Management</h2>
-                         <button className="bg-primary hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2">
-                            <Plus size={20} />
-                            Create New Load
-                        </button>
-                    </div>
-                    <Card>
-                        <CardContent className="p-0">
-                             <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-slate-50">
-                                        <tr>
-                                            <th className="p-4 font-semibold">Client / Assigned</th>
-                                            <th className="p-4 font-semibold">Route</th>
-                                            <th className="p-4 font-semibold">Pickup</th>
-                                            <th className="p-4 font-semibold">Status</th>
-                                            <th className="p-4 font-semibold text-center">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {orders.map((order, index) => (
-                                             <tr key={order.id} className={`border-t ${index === orders.length - 1 ? '' : 'border-b'}`}>
-                                                <td className="p-4">
-                                                    <p className="font-medium">{order.client.companyName || order.client.name}</p>
-                                                    {order.assignedVendorId && vendorMap[order.assignedVendorId] && (
-                                                        <p className="text-xs text-slate-500">Pilot: {vendorMap[order.assignedVendorId].name}</p>
-                                                    )}
-                                                </td>
-                                                <td className="p-4">{order.pickupAddress} <br/> to {order.deliveryAddress}</td>
-                                                <td className="p-4">{order.pickupDate}</td>
-                                                <td className="p-4">
-                                                     <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                                                        order.status === OrderStatus.Assigned ? 'bg-cyan-100 text-cyan-800' :
-                                                        order.status === OrderStatus.New ? 'bg-emerald-100 text-emerald-800' :
-                                                        order.status === OrderStatus.InProgress ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-yellow-100 text-yellow-800'
-                                                    }`}>{order.status}</span>
-                                                </td>
-                                                <td className="p-4">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button 
-                                                            onClick={() => handleOpenDetailsModal(order)}
-                                                            className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md"
-                                                            aria-label="View Details"
-                                                            title="View Details"
-                                                        >
-                                                            <Eye size={16}/>
-                                                        </button>
-                                                        {(order.status === OrderStatus.New || order.status === OrderStatus.PendingAssignment) && (
-                                                        <button 
-                                                            onClick={() => handleOpenAssignModal(order)}
-                                                            className="bg-primary hover:bg-primary-700 text-white font-bold py-1 px-3 rounded-md text-sm"
-                                                        >
-                                                            Assign Pilot
-                                                        </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+            <div className="space-y-8">
+                <Card>
+                    <CardHeader className="flex items-center gap-3">
+                        <Inbox className="text-primary"/>
+                        <h2 className="text-2xl font-bold">New Loads for Assignment ({newLoads.length})</h2>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <OrderTable orders={newLoads} onActionClick={handleOpenAssignModal} actionLabel="Assign" />
+                    </CardContent>
+                </Card>
 
-                {/* Sidebar: Vendor Map & List */}
-                <div className="space-y-8">
-                    <h2 className="text-2xl font-bold">Vendor Locations</h2>
-                    <Card>
-                        <CardHeader className="p-0">
-                            <div className="bg-slate-200 h-56 flex items-center justify-center">
-                                <Map size={48} className="text-slate-400"/>
-                                 <p className="ml-4 text-slate-500">Live Map Placeholder</p>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="relative">
-                                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-                                 <input type="text" placeholder="Search by location..." className="w-full px-3 py-2 pl-10 border border-slate-300 rounded-lg"/>
-                             </div>
-                             <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
-                                {vendors.map(vendor => (
-                                    <div key={vendor.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                                        <div>
-                                            <p className="font-semibold">{vendor.name}</p>
-                                            <p className="text-sm text-slate-500">Updated: {vendor.location.timestamp}</p>
-                                        </div>
-                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${vendor.availability === 'Available' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'}`}>
-                                            {vendor.availability}
-                                        </span>
-                                    </div>
-                                ))}
-                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Card>
+                    <CardHeader className="flex items-center gap-3">
+                        <Clock className="text-secondary" />
+                        <h2 className="text-2xl font-bold">Loads Pending Review ({pendingLoads.length})</h2>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <OrderTable orders={pendingLoads} onActionClick={(order) => alert(`Reviewing order ${order.id}`)} actionLabel="Review" />
+                    </CardContent>
+                </Card>
             </div>
-
-            {isAssignModalOpen && selectedOrderForAssign && (
-                <AssignPilotModal 
-                    order={selectedOrderForAssign} 
-                    vendors={vendors.filter(v => v.availability === 'Available')}
+            
+            {isAssignModalOpen && selectedOrder && (
+                <AssignPilotModal
+                    order={selectedOrder}
+                    vendors={availableVendors}
                     onClose={handleCloseAssignModal}
-                    onAssign={handleAssignPilot}
-                />
-            )}
-
-            {isDetailsModalOpen && selectedOrderForDetails && (
-                <OrderDetailsModal
-                    order={selectedOrderForDetails}
-                    assignedVendor={selectedOrderForDetails.assignedVendorId ? vendorMap[selectedOrderForDetails.assignedVendorId] : null}
-                    onClose={handleCloseDetailsModal}
+                    onAssign={handleAssign}
                 />
             )}
         </>
     );
 };
 
-export default AdminDashboard;
+interface OrderTableProps {
+    orders: PilotOrder[];
+    onActionClick: (order: PilotOrder) => void;
+    actionLabel: string;
+}
+
+const OrderTable: React.FC<OrderTableProps> = ({ orders, onActionClick, actionLabel }) => (
+    <div className="overflow-x-auto">
+        {orders.length === 0 ? (
+            <p className="p-8 text-center text-slate-500">No loads in this category.</p>
+        ) : (
+            <table className="w-full text-left">
+                <thead className="bg-slate-50">
+                    <tr>
+                        <th className="p-4 font-semibold">Client</th>
+                        <th className="p-4 font-semibold">Route</th>
+                        <th className="p-4 font-semibold">Pickup Date</th>
+                        <th className="p-4 font-semibold">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {orders.map((order, index) => (
+                        <tr key={order.id} className={`border-t ${index === orders.length - 1 ? '' : 'border-b'}`}>
+                            <td className="p-4 font-medium">{order.client.companyName || order.client.name}</td>
+                            <td className="p-4">{order.pickupAddress} to {order.deliveryAddress}</td>
+                            <td className="p-4">{order.pickupDate}</td>
+                            <td className="p-4">
+                                <button onClick={() => onActionClick(order)} className="text-primary hover:underline flex items-center gap-1 font-semibold">
+                                    {actionLabel} <ChevronsRight size={16} />
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        )}
+    </div>
+);
+
+
+export default LeadDispatcherView;

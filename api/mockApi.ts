@@ -1,129 +1,186 @@
-import { User, UserRole, PilotOrder, Vendor, OrderStatus, PilotService } from '../types';
+import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus } from '../types';
 
-// --- IN-MEMORY DATABASE ---
+// In-memory database
+let users: User[] = [];
+let orders: PilotOrder[] = [];
+let vendors: Vendor[] = [];
+let permits: Permit[] = [];
 
-let users: User[] = [
-  { id: 'client1', email: 'client@trucking.com', password: 'password', name: 'John Doe', role: UserRole.Client, companyName: 'Heavy Haul Inc.', dotNumber: '123456' },
-  { id: 'vendor1', email: 'vendor@pilot.com', password: 'password', name: 'Jane Smith', role: UserRole.Vendor, companyName: 'Safe Escorts LLC' },
-  { id: 'admin1', email: 'admin@pilotcars.com', password: 'password', name: 'Admin User', role: UserRole.LeadDispatcher },
-];
+// --- Seeding Initial Data ---
 
-let orders: PilotOrder[] = [
-    { id: 'ORD-001', client: users[0], pickupAddress: 'Houston, TX', deliveryAddress: 'Dallas, TX', pickupDate: '2024-08-15', pickupTime: '08:00', services: [PilotService.ChaseLead], driverName: 'Mike T.', driverPhone: '555-1234', status: OrderStatus.Assigned, assignedVendorId: 'vendor1', rate: '$2.50/mile' },
-    { id: 'ORD-002', client: users[0], pickupAddress: 'Austin, TX', deliveryAddress: 'San Antonio, TX', pickupDate: '2024-08-16', pickupTime: '10:00', services: [PilotService.HeightPole], driverName: 'Sarah J.', driverPhone: '555-5678', status: OrderStatus.InProgress, assignedVendorId: 'vendor3', rate: '$300/day' },
-    { id: 'ORD-003', client: users[0], pickupAddress: 'El Paso, TX', deliveryAddress: 'Lubbock, TX', pickupDate: '2024-08-18', pickupTime: '09:00', services: [PilotService.ChaseLead, PilotService.Steer], driverName: 'Carlos R.', driverPhone: '555-9012', status: OrderStatus.PendingAssignment, rate: 'Pending' },
-    { id: 'ORD-004', client: {id: 'client_temp', name: 'Wide Loads Co', email: 'contact@wideloads.com', role: UserRole.Client}, pickupAddress: 'Denver, CO', deliveryAddress: 'Salt Lake City, UT', pickupDate: '2024-08-19', pickupTime: '07:00', services: [PilotService.RouteSurvey], driverName: 'Anna K.', driverPhone: '555-3344', status: OrderStatus.New, rate: 'Pending' },
-];
+const clientUser: User = { 
+    id: 'client1', 
+    name: 'John Doe', 
+    email: 'client@test.com', 
+    role: UserRole.Client, 
+    companyName: 'Heavy Haulers Inc.', 
+    dotNumber: '123456' 
+};
 
-let vendors: Vendor[] = [
-    { id: 'vendor1', name: 'Jane Smith', companyName: 'Safe Escorts LLC', email: 'vendor@pilot.com', services: [PilotService.ChaseLead, PilotService.HeightPole], location: {lat: 30.26, lng: -97.74, timestamp: '5 mins ago'}, availability: 'Available', rating: 4.8, address: '123 Pilot Rd, Austin, TX 78701' },
-    { id: 'vendor2', name: 'Road Guardians', companyName: 'Road Guardians', email: 'contact@roadguardians.com', services: [PilotService.Steer], location: {lat: 29.76, lng: -95.36, timestamp: '12 mins ago'}, availability: 'Available', rating: 4.5, address: '456 Escort Ave, Houston, TX 77002' },
-    { id: 'vendor3', name: 'Tall Load Pros', companyName: 'Tall Load Pros', email: 'info@tallloadpros.com', services: [PilotService.HeightPole, PilotService.RouteSurvey], location: {lat: 32.77, lng: -96.79, timestamp: '1 hour ago'}, availability: 'Unavailable', rating: 4.9, address: '789 Survey St, Dallas, TX 75201' },
-];
+const vendorUser: Vendor = { 
+    id: 'vendor1', 
+    name: 'Jane Smith', 
+    email: 'vendor@test.com', 
+    role: UserRole.Vendor, 
+    companyName: 'Safe Escorts LLC', 
+    services: [PilotService.Lead, PilotService.Chase], 
+    rating: 4.8,
+    address: '123 Pilot Rd, Austin, TX'
+};
 
-// --- API FUNCTIONS ---
+const leadDispatcherUser: User = { id: 'admin1', name: 'Lead Dispatcher', email: 'lead.dispatcher@pilotcars.com', role: UserRole.LeadDispatcher };
+const dispatcherUser: User = { id: 'admin2', name: 'Dispatcher Bob', email: 'dispatcher@pilotcars.com', role: UserRole.Dispatcher };
+const permitAgentUser: User = { id: 'admin3', name: 'Permit Agent Pam', email: 'permit.agent@pilotcars.com', role: UserRole.PermitAgent };
+const supervisorUser: User = { id: 'admin4', name: 'Supervisor Sam', email: 'supervisor@pilotcars.com', role: UserRole.Supervisor };
+const marketingUser: User = { id: 'admin5', name: 'Marketing Mary', email: 'marketing@pilotcars.com', role: UserRole.ContentMarketing };
+const superAdminUser: User = { id: 'admin6', name: 'Super Admin', email: 'super.admin@pilotcars.com', role: UserRole.SuperAdmin };
 
-// A helper to simulate network delay
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+users.push(clientUser, vendorUser, leadDispatcherUser, dispatcherUser, permitAgentUser, supervisorUser, marketingUser, superAdminUser);
+vendors.push(vendorUser);
+
+const order1: PilotOrder = {
+  id: 'order101', client: clientUser, pickupAddress: 'Houston, TX', deliveryAddress: 'Dallas, TX', pickupDate: '2024-08-15', pickupTime: '09:00', services: [PilotService.Lead, PilotService.Chase], driverName: 'Mike', driverPhone: '555-1234', rate: '$1.75/mile', status: OrderStatus.Assigned, assignedVendorId: 'vendor1', assignedDispatcherId: 'admin2'
+};
+const order2: PilotOrder = {
+  id: 'order102', client: clientUser, pickupAddress: 'San Antonio, TX', deliveryAddress: 'Austin, TX', pickupDate: '2024-08-18', pickupTime: '11:00', services: [PilotService.HighPole], driverName: 'Dave', driverPhone: '555-5678', rate: 'Pending', status: OrderStatus.New,
+};
+const order3: PilotOrder = {
+  id: 'order103', client: {id: 'client2', name: 'Big Rig Co', email: 'brc@test.com', role: UserRole.Client}, pickupAddress: 'El Paso, TX', deliveryAddress: 'Lubbock, TX', pickupDate: '2024-08-20', pickupTime: '08:00', services: [PilotService.Chase], driverName: 'Sarah', driverPhone: '555-9012', rate: 'Pending', status: OrderStatus.New,
+};
+const order4: PilotOrder = {
+  id: 'order104', client: clientUser, pickupAddress: 'Corpus Christi, TX', deliveryAddress: 'Laredo, TX', pickupDate: '2024-08-22', pickupTime: '14:00', services: [PilotService.Steer], driverName: 'Chen', driverPhone: '555-3456', rate: 'Pending', status: OrderStatus.PendingAssignment, assignedDispatcherId: 'admin2'
+};
+
+
+orders.push(order1, order2, order3, order4);
+
+permits.push(
+    { id: 'p001', clientId: 'client1', clientName: 'Heavy Haulers Inc.', state: 'Texas', submittedDate: '2024-08-10', status: PermitStatus.Issued },
+    { id: 'p002', clientId: 'client2', clientName: 'Big Rig Co', state: 'New Mexico', submittedDate: '2024-08-11', status: PermitStatus.Processing },
+    { id: 'p003', clientId: 'client1', clientName: 'Heavy Haulers Inc.', state: 'Oklahoma', submittedDate: '2024-08-12', status: PermitStatus.Requested }
+);
 
 export const mockApi = {
-  login: async (email: string, password: string): Promise<User | null> => {
-    await sleep(500);
-    const user = users.find(u => u.email === email && u.password === password);
-    return user || null;
+  login: async (email: string, pass: string): Promise<User> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const user = users.find(u => u.email === email);
+        if (user) {
+          resolve(user);
+        } else {
+          reject(new Error('Invalid email or password'));
+        }
+      }, 500);
+    });
   },
 
-  register: async (userData: Omit<User, 'id'>): Promise<User> => {
-    await sleep(700);
-    if (users.some(u => u.email === userData.email)) {
-        throw new Error("User with this email already exists.");
-    }
-    const newUser: User = { ...userData, id: `user_${Date.now()}` };
-    users.push(newUser);
-    // If a new vendor registers, add them to the vendors list too
-    if (newUser.role === UserRole.Vendor) {
-        vendors.push({
-            id: newUser.id,
-            name: newUser.name,
-            companyName: newUser.companyName || 'N/A',
-            email: newUser.email,
-            services: [],
-            location: { lat: 0, lng: 0, timestamp: 'Never' },
-            availability: 'Unavailable',
-            rating: 0,
-            address: 'Not specified'
-        });
-    }
-    return newUser;
+  register: async (userData: Partial<User> & { password?: string }): Promise<User> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (users.some(u => u.email === userData.email)) {
+          return reject(new Error('User with this email already exists'));
+        }
+        const newUser: User = {
+          id: `user${users.length + 1}`, name: userData.name!, email: userData.email!, role: userData.role!, companyName: userData.companyName, dotNumber: userData.dotNumber
+        };
+        users.push(newUser);
+        if (newUser.role === UserRole.Vendor) {
+            const newVendor: Vendor = { ...newUser, services: [], rating: 5.0, address: '' };
+            vendors.push(newVendor);
+        }
+        resolve(newUser);
+      }, 500);
+    });
   },
-  
+
   submitOrder: async (orderData: Omit<PilotOrder, 'id' | 'status'>): Promise<PilotOrder> => {
-    await sleep(800);
-    const newOrder: PilotOrder = {
-        ...orderData,
-        id: `ORD-${String(orders.length + 1).padStart(3, '0')}`,
-        status: OrderStatus.New,
-    };
-    orders.unshift(newOrder); // Add to the beginning of the list
-    return newOrder;
-  },
-  
-  getOrdersForClient: async (clientId: string): Promise<PilotOrder[]> => {
-    await sleep(500);
-    return orders.filter(o => o.client.id === clientId);
-  },
-
-  getAssignedLoadsForVendor: async (vendorId: string): Promise<PilotOrder[]> => {
-    await sleep(500);
-    return orders.filter(o => o.assignedVendorId === vendorId);
-  },
-
-  getAllOrders: async (): Promise<PilotOrder[]> => {
-      await sleep(500);
-      return [...orders].sort((a,b) => {
-          const statusOrder = [OrderStatus.New, OrderStatus.PendingAssignment, OrderStatus.Assigned, OrderStatus.InProgress, OrderStatus.Completed];
-          return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+      return new Promise((resolve) => {
+          setTimeout(() => {
+              const newOrder: PilotOrder = {
+                  ...orderData, id: `order${orders.length + 101}`, status: OrderStatus.New
+              };
+              orders.push(newOrder);
+              resolve(newOrder);
+          }, 500);
       });
   },
 
-  getAllVendors: async (): Promise<Vendor[]> => {
-      await sleep(500);
-      return vendors;
+  getOrdersForClient: async (clientId: string): Promise<PilotOrder[]> => {
+      return new Promise((resolve) => {
+          setTimeout(() => {
+              resolve(orders.filter(o => o.client.id === clientId));
+          }, 500);
+      });
   },
 
-  getVendorById: async (vendorId: string): Promise<Vendor | null> => {
-    await sleep(100); // Quick lookup
-    const vendor = vendors.find(v => v.id === vendorId);
-    return vendor || null;
-  },
-
-  assignPilotToOrder: async (orderId: string, vendor: Vendor): Promise<PilotOrder> => {
-      await sleep(600);
-      const orderIndex = orders.findIndex(o => o.id === orderId);
-      if (orderIndex === -1) {
-          throw new Error("Order not found");
-      }
-      orders[orderIndex] = {
-          ...orders[orderIndex],
-          status: OrderStatus.Assigned,
-          assignedVendorId: vendor.id,
-          // In a real app, the rate would be negotiated and updated here
-      };
-      return orders[orderIndex];
+  getVendorById: async (vendorId: string): Promise<Vendor> => {
+      return new Promise((resolve, reject) => {
+          setTimeout(() => {
+              const vendor = vendors.find(v => v.id === vendorId);
+              if (vendor) resolve(vendor);
+              else reject(new Error('Vendor not found'));
+          }, 300);
+      });
   },
   
-  getAvailableLoads: async (): Promise<PilotOrder[]> => {
-    await sleep(600);
-    return orders.filter(o => o.status === OrderStatus.New || o.status === OrderStatus.PendingAssignment);
+  getLoadsByStatus: async(statuses: OrderStatus[]): Promise<PilotOrder[]> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(orders.filter(o => statuses.includes(o.status)));
+        }, 500);
+    });
   },
 
-  updateVendorProfile: async (vendorId: string, profileData: Partial<Vendor>): Promise<Vendor> => {
-    await sleep(700);
-    const vendorIndex = vendors.findIndex(v => v.id === vendorId);
-    if (vendorIndex === -1) {
-        throw new Error("Vendor not found");
-    }
-    vendors[vendorIndex] = { ...vendors[vendorIndex], ...profileData };
-    return vendors[vendorIndex];
+  getLoadsAssignedToDispatcher: async(dispatcherId: string): Promise<PilotOrder[]> => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            resolve(orders.filter(o => o.assignedDispatcherId === dispatcherId && o.status === OrderStatus.PendingAssignment));
+        }, 500);
+    });
+  },
+
+  getAllLoads: async(): Promise<PilotOrder[]> => {
+    return new Promise((resolve) => setTimeout(() => resolve(orders), 500));
+  },
+
+  getAllPermits: async(): Promise<Permit[]> => {
+     return new Promise((resolve) => setTimeout(() => resolve(permits), 500));
+  },
+  
+  getAllUsers: async(): Promise<User[]> => {
+      return new Promise((resolve) => setTimeout(() => resolve(users), 500));
+  },
+
+  getAssignedLoadsForVendor: async (vendorId: string): Promise<PilotOrder[]> => {
+      return new Promise((resolve) => {
+          setTimeout(() => {
+              resolve(orders.filter(o => o.assignedVendorId === vendorId));
+          }, 500);
+      });
+  },
+
+  getAvailableLoads: async (): Promise<PilotOrder[]> => {
+      return new Promise((resolve) => {
+          setTimeout(() => {
+              resolve(orders.filter(o => o.status === OrderStatus.New || o.status === OrderStatus.PendingAssignment));
+          }, 500);
+      });
+  },
+  
+  updateVendorProfile: async (vendorId: string, updatedData: Partial<Vendor>): Promise<Vendor> => {
+      return new Promise((resolve, reject) => {
+          setTimeout(() => {
+              const vendorIndex = vendors.findIndex(v => v.id === vendorId);
+              if (vendorIndex > -1) {
+                  vendors[vendorIndex] = { ...vendors[vendorIndex], ...updatedData };
+                   const userIndex = users.findIndex(u => u.id === vendorId);
+                   if (userIndex > -1) users[userIndex] = { ...users[userIndex], ...updatedData };
+                  resolve(vendors[vendorIndex]);
+              } else {
+                  reject(new Error('Vendor not found'));
+              }
+          }, 500);
+      });
   }
 };
