@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Card, { CardContent, CardHeader } from '../Card';
-import { Bell, ListChecks, ChevronsRight, CheckCircle, XCircle, Loader, Briefcase, Edit, UserCheck } from 'lucide-react';
-import { PilotOrder, OrderStatus, Vendor, VendorAvailability } from '../../types';
+import { Bell, ListChecks, ChevronsRight, CheckCircle, XCircle, Loader, Briefcase, Edit, UserCheck, MapPin, LocateFixed, Link2Off } from 'lucide-react';
+import { PilotOrder, OrderStatus, Vendor, VendorAvailability, Location as VendorLocation } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { mockApi } from '../../api/mockApi';
 import OrderDetailsModal from './OrderDetailsModal';
 import AvailableLoadsModal from './AvailableLoadsModal';
 import UpdateProfileModal from './UpdateProfileModal';
+import LocationPickerModal from './LocationPickerModal';
 
 const isCredentialExpired = (dateString?: string): boolean => {
     if (!dateString) return true; // Consider credentials without a date as expired/invalid
@@ -32,9 +33,12 @@ const VendorDashboard: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isAvailableLoadsModalOpen, setIsAvailableLoadsModalOpen] = useState(false);
     const [isUpdateProfileModalOpen, setIsUpdateProfileModalOpen] = useState(false);
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
     
     // State for selected items
     const [selectedOrder, setSelectedOrder] = useState<PilotOrder | null>(null);
+    const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
 
     useEffect(() => {
         if (!user) return;
@@ -111,16 +115,89 @@ const VendorDashboard: React.FC = () => {
         }
     };
 
+    // --- Location Handlers ---
+    const updateLocation = async (latitude: number, longitude: number) => {
+        if (!user) return;
+        setLocationStatus('loading');
+        try {
+            const address = await mockApi.reverseGeocode(latitude, longitude);
+            const newLocation: VendorLocation = {
+                latitude,
+                longitude,
+                address,
+                timestamp: new Date().toISOString(),
+            };
+            const updatedProfile = await mockApi.updateVendorLocation(user.id, newLocation);
+            setVendorProfile(updatedProfile);
+        } catch (err) {
+            setLocationStatus('error');
+            alert('Could not update location.');
+        } finally {
+            setLocationStatus('idle');
+        }
+    };
+
+    const handleShareCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser.');
+            return;
+        }
+        setLocationStatus('loading');
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                updateLocation(position.coords.latitude, position.coords.longitude);
+            },
+            () => {
+                setLocationStatus('error');
+                alert('Unable to retrieve your location. Please check your browser permissions.');
+            }
+        );
+    };
+    
+    const handleSetLocationFromMap = (coords: { lat: number; lng: number }) => {
+        updateLocation(coords.lat, coords.lng);
+        setIsMapModalOpen(false);
+    };
+
+    const handleStopSharing = async () => {
+        if (!user) return;
+        setLocationStatus('loading');
+        try {
+            const updatedProfile = await mockApi.clearVendorLocation(user.id);
+            setVendorProfile(updatedProfile);
+        } catch (err) {
+            alert('Could not stop sharing location.');
+        } finally {
+            setLocationStatus('idle');
+        }
+    };
+    
+    const timeSince = (dateString: string) => {
+        const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " minutes ago";
+        return "just now";
+    };
+
+
     return (
         <>
             <div className="space-y-8">
-                <div className="grid md:grid-cols-3 gap-6">
-                    {/* Share Location Card */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Availability Card */}
                     <Card className="h-full">
                         <CardContent className="flex flex-col items-center justify-center text-center">
                             <UserCheck className="h-12 w-12 text-primary mb-2" />
                             <h3 className="text-xl font-semibold mb-3">Set Your Availability</h3>
-                            <p className="text-slate-500 mb-4 text-sm">Let dispatchers know your current status for new loads.</p>
+                            <p className="text-slate-500 mb-4 text-sm flex-grow">Let dispatchers know if you're ready for new loads.</p>
                             <div className="w-full bg-slate-100 rounded-lg p-1 flex gap-1">
                                 {Object.values(VendorAvailability).map(status => (
                                     <button
@@ -138,13 +215,50 @@ const VendorDashboard: React.FC = () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                     {/* Share Location Card */}
+                    <Card className="h-full">
+                        <CardContent className="flex flex-col items-center justify-center text-center">
+                            <MapPin className="h-12 w-12 text-primary mb-2" />
+                            <h3 className="text-xl font-semibold mb-3">Share Your Location</h3>
+                             {vendorProfile?.location ? (
+                                <div className="text-sm text-slate-600 flex-grow mb-4">
+                                    <p className="font-semibold">{vendorProfile.location.address}</p>
+                                    <p className="text-xs text-slate-400">Last updated: {timeSince(vendorProfile.location.timestamp)}</p>
+                                </div>
+                            ) : (
+                                <p className="text-slate-500 mb-4 text-sm flex-grow">
+                                    Sharing your location helps dispatchers find you for nearby jobs.
+                                </p>
+                            )}
+
+                            {locationStatus === 'loading' ? (
+                                 <Loader className="animate-spin text-primary" />
+                            ) : vendorProfile?.location ? (
+                                <div className="w-full space-y-2">
+                                     <button onClick={handleStopSharing} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                                        <Link2Off size={16} /> Stop Sharing
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="w-full space-y-2">
+                                    <button onClick={handleShareCurrentLocation} className="w-full bg-primary hover:bg-primary-700 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2">
+                                        <LocateFixed size={16} /> Use Current Location
+                                    </button>
+                                    <button onClick={() => setIsMapModalOpen(true)} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-3 rounded-lg text-sm">
+                                        Pick on Map
+                                    </button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                     
                     {/* New Load Alerts Card */}
                     <Card className="h-full">
                         <CardContent className="text-center">
                             <Bell className="mx-auto h-12 w-12 text-primary mb-2" />
                             <h3 className="text-xl font-semibold">New Load Alerts</h3>
-                            <p className="text-slate-500">There are <span className="font-bold text-primary">{availableLoads.length} new loads</span> available.</p>
+                            <p className="text-slate-500 flex-grow">There are <span className="font-bold text-primary">{availableLoads.length} new loads</span> available.</p>
                             <button onClick={handleViewLoads} className="mt-4 bg-primary hover:bg-primary-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 w-full">
                                 <Briefcase size={18} /> View Loads
                             </button>
@@ -156,7 +270,7 @@ const VendorDashboard: React.FC = () => {
                         <CardContent className="text-center">
                             <ListChecks className="mx-auto h-12 w-12 text-primary mb-2" />
                             <h3 className="text-xl font-semibold">Profile & Credentials</h3>
-                            <div className="space-y-2 mt-4 text-left text-sm">
+                            <div className="space-y-2 mt-4 text-left text-sm flex-grow">
                                 {vendorProfile?.credentials?.map(cred => {
                                     const expired = isCredentialExpired(cred.expiryDate);
                                     return (
@@ -230,6 +344,9 @@ const VendorDashboard: React.FC = () => {
             )}
             {isUpdateProfileModalOpen && vendorProfile && (
                 <UpdateProfileModal vendor={vendorProfile} onClose={handleCloseUpdateProfileModal} onSave={handleSaveProfile} />
+            )}
+            {isMapModalOpen && (
+                <LocationPickerModal onClose={() => setIsMapModalOpen(false)} onLocationSelect={handleSetLocationFromMap} />
             )}
         </>
     );

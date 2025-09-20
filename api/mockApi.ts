@@ -1,4 +1,4 @@
-import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential } from '../types';
+import { User, UserRole, PilotOrder, OrderStatus, Vendor, PilotService, Permit, PermitStatus, VendorAvailability, Credential, Location } from '../types';
 
 // In-memory database
 let users: User[] = [];
@@ -28,7 +28,8 @@ const vendorUser: Vendor = {
     address: '123 Pilot Rd, Austin, TX',
     availability: VendorAvailability.Available,
     credentials: [
-        { id: 'ins_1', name: 'Insurance', expiryDate: '2025-12-31' },
+        { id: 'ins_1', name: 'General Liability Insurance', expiryDate: '2025-12-31', amount: 1000000 },
+        { id: 'ins_2', name: 'Commercial Automotive Insurance', expiryDate: '2026-06-30', amount: 750000 },
         { id: 'p_la', name: 'LA Permit', expiryDate: '2024-01-15' },
     ]
 };
@@ -43,7 +44,7 @@ const vendorUser2: Vendor = {
     address: '456 Pilot Ln, Dallas, TX',
     availability: VendorAvailability.OnLoad,
     credentials: [
-        { id: 'ins_2', name: 'Insurance', expiryDate: '2026-06-30' },
+        { id: 'ins_gl_2', name: 'General Liability Insurance', expiryDate: '2026-06-30', amount: 2000000 },
     ]
 };
 
@@ -110,21 +111,33 @@ export const mockApi = {
     });
   },
 
-  register: async (userData: Partial<User> & { password?: string }): Promise<User> => {
+  register: async (userData: Partial<Vendor> & { password?: string }): Promise<User> => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (users.some(u => u.email === userData.email)) {
           return reject(new Error('User with this email already exists'));
         }
-        const newUser: User = {
+        
+        const baseUser: User = {
           id: `user${users.length + 1}`, name: userData.name!, email: userData.email!, role: userData.role!, companyName: userData.companyName, dotNumber: userData.dotNumber
         };
-        users.push(newUser);
-        if (newUser.role === UserRole.Vendor) {
-            const newVendor: Vendor = { ...newUser, services: [], rating: 5.0, address: '', availability: VendorAvailability.Available };
+        
+        if (baseUser.role === UserRole.Vendor) {
+            const newVendor: Vendor = { 
+                ...baseUser, 
+                address: userData.address || '',
+                services: userData.services || [],
+                rating: 5.0, 
+                availability: VendorAvailability.Available,
+                credentials: userData.credentials || []
+            };
+            users.push(newVendor);
             vendors.push(newVendor);
+            resolve(newVendor);
+        } else {
+            users.push(baseUser);
+            resolve(baseUser);
         }
-        resolve(newUser);
       }, 500);
     });
   },
@@ -267,6 +280,44 @@ export const mockApi = {
           reject(new Error('Order not found'));
         }
       }, 500);
+    });
+  },
+
+  reverseGeocode: async (lat: number, lon: number): Promise<string> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // This is a mock function. In a real app, you'd use a service
+        // like Google Maps Geocoding API.
+        resolve(`${Math.abs(lat).toFixed(3)}° Fictional Ave, ${Math.abs(lon).toFixed(3)}° Fictional City`);
+      }, 300);
+    });
+  },
+
+  updateVendorLocation: async (vendorId: string, location: Location): Promise<Vendor> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const vendor = vendors.find(v => v.id === vendorId);
+        if (vendor) {
+          vendor.location = location;
+          resolve(vendor);
+        } else {
+          reject(new Error('Vendor not found'));
+        }
+      }, 300);
+    });
+  },
+
+  clearVendorLocation: async (vendorId: string): Promise<Vendor> => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const vendor = vendors.find(v => v.id === vendorId);
+        if (vendor) {
+          vendor.location = undefined;
+          resolve(vendor);
+        } else {
+          reject(new Error('Vendor not found'));
+        }
+      }, 300);
     });
   }
 };

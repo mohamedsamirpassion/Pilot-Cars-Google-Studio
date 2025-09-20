@@ -1,41 +1,100 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card, { CardHeader, CardContent, CardFooter } from './Card';
-import { PilotService, UserRole } from '../types';
+import { PilotService, UserRole, Credential } from '../types';
 import { UserPlus } from 'lucide-react';
 import { mockApi } from '../api/mockApi';
 import { useAuth } from '../context/AuthContext';
 
 
 const VendorRegisterForm: React.FC = () => {
-    const [showGeneralLiability, setShowGeneralLiability] = useState(false);
-    const [showCommercialAuto, setShowCommercialAuto] = useState(false);
-    const [showOther, setShowOther] = useState(false);
+    const [formData, setFormData] = useState({
+        companyName: '',
+        contactName: '',
+        email: '',
+        password: '',
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        services: new Set<PilotService>(),
+        numCars: '',
+        dlExpiry: '',
+        certWitpac: false,
+        certInsurance: false,
+        certLaPermit: false,
+        showGL: false,
+        glAmount: '',
+        glExpiry: '',
+        showCA: false,
+        caAmount: '',
+        showOther: false,
+        otherDesc: '',
+        otherExpiry: '',
+    });
+    
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { login } = useAuth();
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleServiceChange = (service: PilotService) => {
+        setFormData(prev => {
+            const newServices = new Set(prev.services);
+            if (newServices.has(service)) {
+                newServices.delete(service);
+            } else {
+                newServices.add(service);
+            }
+            return { ...prev, services: newServices };
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        // In a real app, you would collect all form data from state
-        // For this demo, we'll use a few key fields
-        const form = e.target as HTMLFormElement;
-        const email = (form.elements.namedItem('v_email') as HTMLInputElement).value;
-        const password = (form.elements.namedItem('v_password') as HTMLInputElement).value;
-        const contactName = (form.elements.namedItem('v_contactName') as HTMLInputElement).value;
-        const companyName = (form.elements.namedItem('v_companyName') as HTMLInputElement).value;
+
+        if (formData.services.size === 0) {
+            setError('Please select at least one service.');
+            setLoading(false);
+            return;
+        }
+
+        const credentials: Credential[] = [];
+        if (formData.showGL) {
+            credentials.push({
+                id: 'cred_gl',
+                name: 'General Liability Insurance',
+                amount: formData.glAmount ? parseInt(formData.glAmount, 10) : undefined,
+                expiryDate: formData.glExpiry || undefined,
+            });
+        }
+        if (formData.showCA) {
+            credentials.push({
+                id: 'cred_ca',
+                name: 'Commercial Automotive Insurance',
+                amount: formData.caAmount ? parseInt(formData.caAmount, 10) : undefined,
+            });
+        }
+        // You could add more credentials here based on other form fields
 
         try {
             const newUser = await mockApi.register({
-                name: contactName,
-                email: email,
-                password: password,
+                name: formData.contactName,
+                email: formData.email,
+                password: formData.password,
                 role: UserRole.Vendor,
-                companyName: companyName,
+                companyName: formData.companyName,
+                address: `${formData.street}, ${formData.city}, ${formData.state} ${formData.zip}`,
+                services: Array.from(formData.services),
+                credentials,
             });
             alert('Vendor registration successful!');
             login(newUser);
@@ -62,22 +121,10 @@ const VendorRegisterForm: React.FC = () => {
                     <div className="p-4 border rounded-lg">
                         <h3 className="text-lg font-semibold text-primary mb-4">1. Company Information</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="v_companyName">Company Name</label>
-                                <input id="v_companyName" name="v_companyName" type="text" className="input" required disabled={loading}/>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="v_contactName">Contact Name</label>
-                                <input id="v_contactName" name="v_contactName" type="text" className="input" required disabled={loading}/>
-                            </div>
-                             <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="v_email">Email Address</label>
-                                <input id="v_email" name="v_email" type="email" className="input" required disabled={loading}/>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="v_password">Password</label>
-                                <input id="v_password" name="v_password" type="password" className="input" required disabled={loading}/>
-                            </div>
+                            <InputField label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} required disabled={loading} />
+                            <InputField label="Contact Name" name="contactName" value={formData.contactName} onChange={handleChange} required disabled={loading} />
+                            <InputField label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} required disabled={loading} />
+                            <InputField label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required disabled={loading} />
                         </div>
                     </div>
 
@@ -89,15 +136,14 @@ const VendorRegisterForm: React.FC = () => {
                             <div className="grid grid-cols-2 gap-2 mt-2">
                                 {services.map(service => (
                                     <label key={service} className="flex items-center gap-2 p-3 border rounded-lg hover:bg-slate-50">
-                                        <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" disabled={loading}/>
+                                        <input type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" onChange={() => handleServiceChange(service)} checked={formData.services.has(service)} disabled={loading}/>
                                         <span>{service}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
                         <div className="mt-4">
-                             <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="numCars">Number of Cars</label>
-                             <input id="numCars" type="number" className="input" placeholder="e.g., 5" min="0" disabled={loading}/>
+                             <InputField label="Number of Cars" name="numCars" type="number" placeholder="e.g., 5" min="0" value={formData.numCars} onChange={handleChange} disabled={loading} />
                         </div>
                     </div>
 
@@ -105,12 +151,11 @@ const VendorRegisterForm: React.FC = () => {
                     <div className="p-4 border rounded-lg">
                         <h3 className="text-lg font-semibold text-primary mb-4">3. Address</h3>
                         <div>
-                            <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="v_address">Street Address</label>
-                            <input id="v_address" type="text" className="input" placeholder="123 Main St" required disabled={loading}/>
+                            <InputField label="Street Address" name="street" placeholder="123 Main St" required value={formData.street} onChange={handleChange} disabled={loading} />
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
-                                 <input type="text" className="input" placeholder="City" required disabled={loading}/>
-                                 <input type="text" className="input" placeholder="State" required disabled={loading}/>
-                                 <input type="text" className="input" placeholder="Zip Code" required disabled={loading}/>
+                                 <input type="text" className="input" name="city" placeholder="City" required value={formData.city} onChange={handleChange} disabled={loading}/>
+                                 <input type="text" className="input" name="state" placeholder="State" required value={formData.state} onChange={handleChange} disabled={loading}/>
+                                 <input type="text" className="input" name="zip" placeholder="Zip Code" required value={formData.zip} onChange={handleChange} disabled={loading}/>
                             </div>
                         </div>
                     </div>
@@ -122,14 +167,13 @@ const VendorRegisterForm: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-medium text-slate-600 mb-2">Car Equipment & Certs</label>
                                 <div className="space-y-2">
-                                    <CheckboxLabel label="WITPAC Certified" id="cert_witpac" disabled={loading}/>
-                                    <CheckboxLabel label="$1 Million Insurance" id="cert_insurance" disabled={loading}/>
-                                    <CheckboxLabel label="LA Permit" id="cert_la_permit" disabled={loading}/>
+                                    <CheckboxLabel label="WITPAC Certified" name="certWitpac" checked={formData.certWitpac} onChange={handleChange} disabled={loading}/>
+                                    <CheckboxLabel label="$1 Million Insurance" name="certInsurance" checked={formData.certInsurance} onChange={handleChange} disabled={loading}/>
+                                    <CheckboxLabel label="LA Permit" name="certLaPermit" checked={formData.certLaPermit} onChange={handleChange} disabled={loading}/>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="dl_expiry">Driving License Expiry Date</label>
-                                <input id="dl_expiry" type="date" className="input" disabled={loading}/>
+                                <InputField label="Driving License Expiry Date" name="dlExpiry" type="date" value={formData.dlExpiry} onChange={handleChange} disabled={loading}/>
                             </div>
                         </div>
                     </div>
@@ -140,52 +184,33 @@ const VendorRegisterForm: React.FC = () => {
                         <div className="space-y-4">
                             {/* General Liability */}
                             <div>
-                                <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={showGeneralLiability} onChange={(e) => setShowGeneralLiability(e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" disabled={loading}/>
-                                    <span className="font-medium">General Liability Insurance</span>
-                                </label>
-                                {showGeneralLiability && (
+                                <CheckboxLabel label="General Liability Insurance" name="showGL" checked={formData.showGL} onChange={handleChange} disabled={loading}/>
+                                {formData.showGL && (
                                     <div className="grid grid-cols-2 gap-4 mt-2 pl-6">
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="gl_amount">Amount ($)</label>
-                                            <input id="gl_amount" type="number" placeholder="e.g., 1000000" className="input" disabled={loading}/>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="gl_expiry">Expiry Date</label>
-                                            <input id="gl_expiry" type="date" className="input" disabled={loading}/>
-                                        </div>
+                                        <InputField label="Amount ($)" name="glAmount" type="number" placeholder="e.g., 1000000" value={formData.glAmount} onChange={handleChange} disabled={loading}/>
+                                        <InputField label="Expiry Date" name="glExpiry" type="date" value={formData.glExpiry} onChange={handleChange} disabled={loading}/>
                                     </div>
                                 )}
                             </div>
                             {/* Commercial Automotive */}
                              <div>
-                                <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={showCommercialAuto} onChange={(e) => setShowCommercialAuto(e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" disabled={loading}/>
-                                    <span className="font-medium">Commercial Automotive Insurance</span>
-                                </label>
-                                {showCommercialAuto && (
+                                <CheckboxLabel label="Commercial Automotive Insurance" name="showCA" checked={formData.showCA} onChange={handleChange} disabled={loading}/>
+                                {formData.showCA && (
                                     <div className="mt-2 pl-6">
-                                        <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="ca_amount">Amount ($)</label>
-                                        <input id="ca_amount" type="number" placeholder="e.g., 500000" className="input" disabled={loading}/>
+                                        <InputField label="Amount ($)" name="caAmount" type="number" placeholder="e.g., 500000" value={formData.caAmount} onChange={handleChange} disabled={loading}/>
                                     </div>
                                 )}
                             </div>
                              {/* Other */}
                             <div>
-                                <label className="flex items-center gap-2">
-                                    <input type="checkbox" checked={showOther} onChange={(e) => setShowOther(e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" disabled={loading}/>
-                                    <span className="font-medium">Other(s)</span>
-                                </label>
-                                {showOther && (
+                                <CheckboxLabel label="Other(s)" name="showOther" checked={formData.showOther} onChange={handleChange} disabled={loading}/>
+                                {formData.showOther && (
                                     <div className="space-y-2 mt-2 pl-6">
                                         <div>
                                             <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="other_desc">Description</label>
-                                            <textarea id="other_desc" className="input" rows={3} placeholder="Describe other insurance or certifications..." disabled={loading}></textarea>
+                                            <textarea id="other_desc" name="otherDesc" className="input" rows={3} placeholder="Describe other insurance or certifications..." value={formData.otherDesc} onChange={handleChange} disabled={loading}></textarea>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="other_expiry">Expiry Date</label>
-                                            <input id="other_expiry" type="date" className="input" disabled={loading}/>
-                                        </div>
+                                        <InputField label="Expiry Date" name="otherExpiry" type="date" value={formData.otherExpiry} onChange={handleChange} disabled={loading}/>
                                     </div>
                                 )}
                             </div>
@@ -204,9 +229,17 @@ const VendorRegisterForm: React.FC = () => {
     );
 };
 
-const CheckboxLabel: React.FC<{label: string, id: string, disabled?: boolean}> = ({label, id, disabled}) => (
-    <label htmlFor={id} className="flex items-center gap-2">
-        <input id={id} type="checkbox" className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded" disabled={disabled}/>
+const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & {label: string}> = ({label, name, ...props}) => (
+     <div>
+        <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor={name}>{label}</label>
+        <input name={name} id={name} {...props} className="input" />
+    </div>
+);
+
+
+const CheckboxLabel: React.FC<React.InputHTMLAttributes<HTMLInputElement> & {label: string}> = ({label, name, ...props}) => (
+    <label htmlFor={name} className="flex items-center gap-2 font-medium">
+        <input name={name} id={name} type="checkbox" {...props} className="h-4 w-4 text-primary focus:ring-primary border-slate-300 rounded"/>
         <span>{label}</span>
     </label>
 );

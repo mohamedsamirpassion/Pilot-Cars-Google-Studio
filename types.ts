@@ -65,6 +65,14 @@ export interface Credential {
     id: string;
     name: string;
     expiryDate?: string;
+    amount?: number;
+}
+
+export interface Location {
+    latitude: number;
+    longitude: number;
+    address: string;
+    timestamp: string;
 }
 
 export interface Vendor extends User {
@@ -73,6 +81,7 @@ export interface Vendor extends User {
   rating: number;
   availability: VendorAvailability;
   credentials?: Credential[];
+  location?: Location;
 }
 
 export enum PermitStatus {

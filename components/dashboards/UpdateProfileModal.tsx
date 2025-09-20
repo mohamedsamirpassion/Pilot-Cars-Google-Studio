@@ -35,11 +35,12 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
     setFormData({ ...formData, services: newServices });
   };
 
-  const handleCredentialChange = (credId: string, newDate: string) => {
+  const handleCredentialChange = (credId: string, field: keyof Credential, value: string) => {
+    const isNumber = field === 'amount';
     setFormData(prev => ({
         ...prev,
         credentials: (prev.credentials || []).map(cred => 
-            cred.id === credId ? { ...cred, expiryDate: newDate } : cred
+            cred.id === credId ? { ...cred, [field]: isNumber ? (value ? parseInt(value, 10) : undefined) : value } : cred
         ),
     }));
   };
@@ -99,20 +100,35 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
             <div className="p-4 border rounded-lg">
                 <h3 className="text-lg font-semibold text-primary mb-4">Manage Credentials</h3>
                 <div className="space-y-4">
-                    {(formData.credentials || []).map(cred => (
-                         <div key={cred.id} className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 items-center">
-                            <label className="font-medium text-slate-700" htmlFor={`cred-${cred.id}`}>{cred.name} Expiry</label>
-                            <input
-                                id={`cred-${cred.id}`}
-                                type="date"
-                                value={cred.expiryDate || ''}
-                                onChange={(e) => handleCredentialChange(cred.id, e.target.value)}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                            />
-                         </div>
-                    ))}
+                    {(formData.credentials || []).map(cred => {
+                        const isInsurance = cred.name.toLowerCase().includes('insurance');
+                        return (
+                            <div key={cred.id} className="p-3 bg-slate-50 rounded-lg">
+                                <label className="font-semibold text-slate-700 block mb-2">{cred.name}</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {isInsurance && (
+                                        <InputField 
+                                            label="Amount ($)"
+                                            type="number"
+                                            placeholder="e.g., 1000000"
+                                            value={cred.amount || ''}
+                                            onChange={(e) => handleCredentialChange(cred.id, 'amount', e.target.value)}
+                                        />
+                                    )}
+                                    <InputField 
+                                        label="Expiry Date"
+                                        type="date"
+                                        value={cred.expiryDate || ''}
+                                        onChange={(e) => handleCredentialChange(cred.id, 'expiryDate', e.target.value)}
+                                        // Use col-span-2 if amount is not shown
+                                        className={!isInsurance ? 'sm:col-span-2' : ''}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
                      {(!formData.credentials || formData.credentials.length === 0) && (
-                        <p className="text-sm text-slate-500 text-center">No credentials on file.</p>
+                        <p className="text-sm text-slate-500 text-center py-4">No credentials on file.</p>
                      )}
                 </div>
             </div>
@@ -133,8 +149,8 @@ const UpdateProfileModal: React.FC<UpdateProfileModalProps> = ({ vendor, onClose
 };
 
 
-const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-    <div>
+const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, className, ...props }) => (
+    <div className={className}>
         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor={props.id || props.name}>{label}</label>
         <input 
             {...props}
