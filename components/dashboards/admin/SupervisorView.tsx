@@ -3,10 +3,11 @@ import Card, { CardContent } from '../../Card';
 import { PilotOrder, Permit } from '../../../types';
 import { mockApi } from '../../../api/mockApi';
 import { Loader } from 'lucide-react';
+import LeadDispatcherDashboard from './LeadDispatcherDashboard';
 
 type Tab = 'dispatch' | 'permits';
 
-const SupervisorView: React.FC = () => {
+const OperationsOverview: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dispatch');
   const [loads, setLoads] = useState<PilotOrder[]>([]);
   const [permits, setPermits] = useState<Permit[]>([]);
@@ -35,7 +36,7 @@ const SupervisorView: React.FC = () => {
   return (
     <Card>
       <div className="p-4 border-b">
-        <h2 className="text-2xl font-bold mb-4">Operations Overview</h2>
+        <h2 className="text-2xl font-bold mb-4">Operations Overview (Supervisor)</h2>
         <div className="flex gap-2">
           <TabButton
             label="Dispatch Operations"
@@ -121,5 +122,13 @@ const PermitsTable: React.FC<{permits: Permit[]}> = ({ permits }) => (
     </table>
 );
 
+const SupervisorView: React.FC = () => {
+    return (
+        <div className="space-y-8">
+            <LeadDispatcherDashboard />
+            <OperationsOverview />
+        </div>
+    );
+};
 
 export default SupervisorView;

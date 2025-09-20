@@ -6,7 +6,7 @@ import SupervisorView from '../../components/dashboards/admin/SupervisorView';
 import PermitAgentDashboard from '../../components/dashboards/admin/PermitAgentDashboard';
 import ContentMarketingDashboard from '../../components/dashboards/admin/ContentMarketingDashboard';
 import SuperAdminDashboard from '../../components/dashboards/admin/SuperAdminDashboard';
-import LeadDispatcherView from '../../components/dashboards/AdminDashboard'; 
+import LeadDispatcherDashboard from '../../components/dashboards/admin/LeadDispatcherDashboard'; 
 
 const AdminRouter: React.FC = () => {
     const { user } = useAuth();
@@ -17,7 +17,7 @@ const AdminRouter: React.FC = () => {
     
     switch(user.role) {
         case UserRole.LeadDispatcher:
-            return <LeadDispatcherView />;
+            return <LeadDispatcherDashboard />;
         case UserRole.Dispatcher:
             return <DispatcherView />;
         case UserRole.Supervisor:
