@@ -1,4 +1,3 @@
-
 export enum UserRole {
   Client = 'CLIENT',
   Vendor = 'VENDOR',
@@ -16,6 +15,7 @@ export enum UserRole {
 export interface User {
   id: string;
   email: string;
+  password?: string; // Added for registration/login logic
   name: string;
   role: UserRole;
   companyName?: string;
@@ -40,7 +40,7 @@ export enum OrderStatus {
 
 export interface PilotOrder {
   id: string;
-  clientName: string;
+  client: Pick<User, 'id' | 'name' | 'email' | 'role' | 'companyName'>; // Link to user
   pickupAddress: string;
   deliveryAddress: string;
   pickupDate: string;
@@ -49,7 +49,7 @@ export interface PilotOrder {
   driverName: string;
   driverPhone: string;
   status: OrderStatus;
-  assignedVendor?: string;
+  assignedVendorId?: string; // More realistic linking
   rate?: string;
 }
 

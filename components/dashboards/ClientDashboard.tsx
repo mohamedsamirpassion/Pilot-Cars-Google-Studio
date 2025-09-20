@@ -1,17 +1,33 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Card, { CardContent, CardHeader } from '../Card';
-import { PlusCircle, FileText, Compass, ChevronsRight } from 'lucide-react';
-import { PilotOrder, PilotService, OrderStatus } from '../../types';
-
-const mockOrders: PilotOrder[] = [
-    { id: 'ORD-001', clientName: 'Heavy Haul Inc.', pickupAddress: 'Houston, TX', deliveryAddress: 'Dallas, TX', pickupDate: '2024-08-15', pickupTime: '08:00', services: [PilotService.ChaseLead], driverName: 'Mike T.', driverPhone: '555-1234', status: OrderStatus.Assigned, assignedVendor: 'Safe Escorts LLC', rate: '$2.50/mile' },
-    { id: 'ORD-002', clientName: 'Heavy Haul Inc.', pickupAddress: 'Austin, TX', deliveryAddress: 'San Antonio, TX', pickupDate: '2024-08-16', pickupTime: '10:00', services: [PilotService.HeightPole], driverName: 'Sarah J.', driverPhone: '555-5678', status: OrderStatus.InProgress, assignedVendor: 'Tall Load Pros', rate: '$300/day' },
-    { id: 'ORD-003', clientName: 'Heavy Haul Inc.', pickupAddress: 'El Paso, TX', deliveryAddress: 'Lubbock, TX', pickupDate: '2024-08-18', pickupTime: '09:00', services: [PilotService.ChaseLead, PilotService.Steer], driverName: 'Carlos R.', driverPhone: '555-9012', status: OrderStatus.PendingAssignment, rate: 'Pending' },
-];
+import { PlusCircle, FileText, Compass, ChevronsRight, Loader } from 'lucide-react';
+import { PilotOrder, OrderStatus } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { mockApi } from '../../api/mockApi';
 
 const ClientDashboard: React.FC = () => {
+  const [orders, setOrders] = useState<PilotOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const clientOrders = await mockApi.getOrdersForClient(user.id);
+        setOrders(clientOrders);
+      } catch (err) {
+        setError('Failed to fetch orders.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [user]);
+
   return (
     <div className="space-y-8">
       {/* Quick Actions */}
@@ -48,37 +64,48 @@ const ClientDashboard: React.FC = () => {
         </CardHeader>
         <CardContent className="p-0">
             <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="p-4 font-semibold">Order ID</th>
-                            <th className="p-4 font-semibold">Route</th>
-                            <th className="p-4 font-semibold">Pickup Date</th>
-                            <th className="p-4 font-semibold">Status</th>
-                            <th className="p-4 font-semibold">Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {mockOrders.map((order, index) => (
-                            <tr key={order.id} className={`border-t ${index === mockOrders.length -1 ? '' : 'border-b'}`}>
-                                <td className="p-4 font-medium">{order.id}</td>
-                                <td className="p-4">{order.pickupAddress} to {order.deliveryAddress}</td>
-                                <td className="p-4">{order.pickupDate}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full ${
-                                        order.status === OrderStatus.Completed ? 'bg-green-100 text-green-800' :
-                                        order.status === OrderStatus.InProgress ? 'bg-blue-100 text-blue-800' :
-                                        order.status === OrderStatus.Assigned ? 'bg-cyan-100 text-cyan-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                    }`}>{order.status}</span>
-                                </td>
-                                <td className="p-4">
-                                    <button className="text-primary hover:underline flex items-center gap-1">View <ChevronsRight size={16}/></button>
-                                </td>
+                {loading ? (
+                    <div className="flex justify-center items-center p-16">
+                        <Loader className="animate-spin text-primary" size={48} />
+                    </div>
+                ) : error ? (
+                    <p className="p-8 text-center text-red-600">{error}</p>
+                ) : orders.length === 0 ? (
+                    <p className="p-8 text-center text-slate-500">You have no active orders.</p>
+                ) : (
+                    <table className="w-full text-left">
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="p-4 font-semibold">Order ID</th>
+                                <th className="p-4 font-semibold">Route</th>
+                                <th className="p-4 font-semibold">Pickup Date</th>
+                                <th className="p-4 font-semibold">Status</th>
+                                <th className="p-4 font-semibold">Details</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {orders.map((order, index) => (
+                                <tr key={order.id} className={`border-t ${index === orders.length -1 ? '' : 'border-b'}`}>
+                                    <td className="p-4 font-medium">{order.id}</td>
+                                    <td className="p-4">{order.pickupAddress} to {order.deliveryAddress}</td>
+                                    <td className="p-4">{order.pickupDate}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                                            order.status === OrderStatus.Completed ? 'bg-green-100 text-green-800' :
+                                            order.status === OrderStatus.InProgress ? 'bg-blue-100 text-blue-800' :
+                                            order.status === OrderStatus.Assigned ? 'bg-cyan-100 text-cyan-800' :
+                                            order.status === OrderStatus.New ? 'bg-green-100 text-green-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                        }`}>{order.status}</span>
+                                    </td>
+                                    <td className="p-4">
+                                        <button className="text-primary hover:underline flex items-center gap-1">View <ChevronsRight size={16}/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </CardContent>
       </Card>
