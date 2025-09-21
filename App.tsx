@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Header from './components/Header';
@@ -16,7 +16,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <HashRouter>
+        <BrowserRouter>
           <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
             <Header />
             <main className="flex-grow container mx-auto px-4 py-8">
@@ -40,7 +40,7 @@ const App: React.FC = () => {
             </main>
             <Footer />
           </div>
-        </HashRouter>
+        </BrowserRouter>
       </NotificationProvider>
     </AuthProvider>
   );
