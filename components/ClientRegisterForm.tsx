@@ -20,6 +20,8 @@ const ClientRegisterForm: React.FC = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
 
+    const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100";
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
@@ -58,27 +60,27 @@ const ClientRegisterForm: React.FC = () => {
                     {error && <p className="md:col-span-2 bg-red-100 text-red-700 p-3 rounded-lg">{error}</p>}
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="companyName">Company Name</label>
-                        <input id="companyName" type="text" className="input" value={formData.companyName} onChange={handleChange} required disabled={loading} />
+                        <input id="companyName" type="text" className={inputClasses} value={formData.companyName} onChange={handleChange} required disabled={loading} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="contactName">Contact Name</label>
-                        <input id="contactName" type="text" className="input" value={formData.contactName} onChange={handleChange} required disabled={loading} />
+                        <input id="contactName" type="text" className={inputClasses} value={formData.contactName} onChange={handleChange} required disabled={loading} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="dotNumber">DOT Number</label>
-                        <input id="dotNumber" type="text" className="input" value={formData.dotNumber} onChange={handleChange} disabled={loading} />
+                        <input id="dotNumber" type="text" className={inputClasses} value={formData.dotNumber} onChange={handleChange} disabled={loading} />
                     </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="address">Company Address</label>
-                        <textarea id="address" className="input" rows={3} value={formData.address} onChange={handleChange} disabled={loading}></textarea>
+                        <textarea id="address" className={inputClasses} rows={3} value={formData.address} onChange={handleChange} disabled={loading}></textarea>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="email">Email Address</label>
-                        <input id="email" type="email" className="input" value={formData.email} onChange={handleChange} required disabled={loading} />
+                        <input id="email" type="email" className={inputClasses} value={formData.email} onChange={handleChange} required disabled={loading} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor="password">Password</label>
-                        <input id="password" type="password" className="input" value={formData.password} onChange={handleChange} required disabled={loading} />
+                        <input id="password" type="password" className={inputClasses} value={formData.password} onChange={handleChange} required disabled={loading} />
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -92,20 +94,4 @@ const ClientRegisterForm: React.FC = () => {
     );
 };
 
-const GlobalStyles = () => (
-    <style>{`
-        .input {
-            @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100;
-        }
-    `}</style>
-);
-
-const ClientRegisterFormWithStyles: React.FC = () => (
-    <>
-        <GlobalStyles />
-        <ClientRegisterForm />
-    </>
-);
-
-
-export default ClientRegisterFormWithStyles;
+export default ClientRegisterForm;

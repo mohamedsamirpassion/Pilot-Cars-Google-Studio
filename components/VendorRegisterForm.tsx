@@ -107,6 +107,7 @@ const VendorRegisterForm: React.FC = () => {
     };
     
     const services = Object.values(PilotService);
+    const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100";
 
     return (
         <Card>
@@ -153,9 +154,9 @@ const VendorRegisterForm: React.FC = () => {
                         <div>
                             <InputField label="Street Address" name="street" placeholder="123 Main St" required value={formData.street} onChange={handleChange} disabled={loading} />
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
-                                 <input type="text" className="input" name="city" placeholder="City" required value={formData.city} onChange={handleChange} disabled={loading}/>
-                                 <input type="text" className="input" name="state" placeholder="State" required value={formData.state} onChange={handleChange} disabled={loading}/>
-                                 <input type="text" className="input" name="zip" placeholder="Zip Code" required value={formData.zip} onChange={handleChange} disabled={loading}/>
+                                 <input type="text" className={inputClasses} name="city" placeholder="City" required value={formData.city} onChange={handleChange} disabled={loading}/>
+                                 <input type="text" className={inputClasses} name="state" placeholder="State" required value={formData.state} onChange={handleChange} disabled={loading}/>
+                                 <input type="text" className={inputClasses} name="zip" placeholder="Zip Code" required value={formData.zip} onChange={handleChange} disabled={loading}/>
                             </div>
                         </div>
                     </div>
@@ -208,7 +209,7 @@ const VendorRegisterForm: React.FC = () => {
                                     <div className="space-y-2 mt-2 pl-6">
                                         <div>
                                             <label className="block text-xs font-medium text-slate-500 mb-1" htmlFor="other_desc">Description</label>
-                                            <textarea id="other_desc" name="otherDesc" className="input" rows={3} placeholder="Describe other insurance or certifications..." value={formData.otherDesc} onChange={handleChange} disabled={loading}></textarea>
+                                            <textarea id="other_desc" name="otherDesc" className={inputClasses} rows={3} placeholder="Describe other insurance or certifications..." value={formData.otherDesc} onChange={handleChange} disabled={loading}></textarea>
                                         </div>
                                         <InputField label="Expiry Date" name="otherExpiry" type="date" value={formData.otherExpiry} onChange={handleChange} disabled={loading}/>
                                     </div>
@@ -232,7 +233,7 @@ const VendorRegisterForm: React.FC = () => {
 const InputField: React.FC<React.InputHTMLAttributes<HTMLInputElement> & {label: string}> = ({label, name, ...props}) => (
      <div>
         <label className="block text-sm font-medium text-slate-600 mb-1" htmlFor={name}>{label}</label>
-        <input name={name} id={name} {...props} className="input" />
+        <input name={name} id={name} {...props} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100" />
     </div>
 );
 
@@ -244,19 +245,4 @@ const CheckboxLabel: React.FC<React.InputHTMLAttributes<HTMLInputElement> & {lab
     </label>
 );
 
-const GlobalStyles = () => (
-    <style>{`
-        .input {
-            @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100;
-        }
-    `}</style>
-);
-
-const VendorRegisterFormWithStyles: React.FC = () => (
-    <>
-        <GlobalStyles />
-        <VendorRegisterForm />
-    </>
-);
-
-export default VendorRegisterFormWithStyles;
+export default VendorRegisterForm;

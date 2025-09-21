@@ -15,6 +15,8 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
   const [tags, setTags] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !excerpt || !content) {
@@ -40,7 +42,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="input"
+            className={inputClasses}
             required
             disabled={loading}
           />
@@ -51,7 +53,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
             id="excerpt"
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
-            className="input"
+            className={inputClasses}
             rows={2}
             maxLength={160}
             required
@@ -67,7 +69,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
                 type="text"
                 value={categories}
                 onChange={(e) => setCategories(e.target.value)}
-                className="input"
+                className={inputClasses}
                 placeholder="e.g., Guides, News, Safety"
                 disabled={loading}
               />
@@ -80,7 +82,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                className="input"
+                className={inputClasses}
                 placeholder="e.g., permitting, regulations"
                 disabled={loading}
               />
@@ -93,7 +95,7 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="input font-mono"
+            className={`${inputClasses} font-mono`}
             rows={10}
             placeholder="<p>Start writing your article here...</p><h2>A Subheading</h2>"
             required
@@ -110,19 +112,8 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({ onSubmit, onCancel }) =
           {loading ? 'Publishing...' : 'Publish Post'}
         </button>
       </CardFooter>
-      <GlobalStyles />
     </form>
   );
 };
-
-
-const GlobalStyles = () => (
-    <style>{`
-        .input {
-            @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100;
-        }
-    `}</style>
-);
-
 
 export default CreatePostForm;

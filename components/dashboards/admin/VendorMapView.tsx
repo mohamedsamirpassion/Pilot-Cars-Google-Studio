@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, User, Briefcase, CheckCircle, XCircle, Search, Loader } from 'lucide-react';
-// FIX: Import `MapMouseEvent` to use for the map click handler.
 import type { MapMouseEvent } from '@vis.gl/react-google-maps';
 import { Vendor, Location } from '../../../types';
 import { mockApi } from '../../../api/mockApi';
@@ -52,7 +51,6 @@ const VendorMapView: React.FC = () => {
   }, [searchPin, locatedVendors]);
 
 
-  // FIX: Replaced `google.maps.MapMouseEvent` with the correct `MapMouseEvent` type and updated property access from `e.latLng` to `e.detail.latLng`.
   const handleMapClick = (e: MapMouseEvent) => {
     if (!isPinDropMode || !e.detail.latLng) return;
     

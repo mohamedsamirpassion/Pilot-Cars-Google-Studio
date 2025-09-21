@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
-// FIX: Import `MapMouseEvent` to use for the map click handler.
 import type { MapMouseEvent } from '@vis.gl/react-google-maps';
 import GoogleMap, { Marker, MarkerPin } from '../GoogleMap';
 
@@ -12,7 +11,6 @@ interface LocationPickerModalProps {
 const LocationPickerModal: React.FC<LocationPickerModalProps> = ({ onClose, onLocationSelect }) => {
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   
-  // FIX: Replaced `google.maps.MapMouseEvent` with the correct `MapMouseEvent` type and updated property access from `e.latLng` to `e.detail.latLng`.
   const handleMapClick = (e: MapMouseEvent) => {
     if (e.detail.latLng) {
       setSelectedCoords({ lat: e.detail.latLng.lat(), lng: e.detail.latLng.lng() });

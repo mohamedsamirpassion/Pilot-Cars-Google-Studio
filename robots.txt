@@ -1,6 +1,2 @@
-# Allow all user agents to crawl the site
 User-agent: *
-Allow: /
-
-# Provide the location of the sitemap, be sure to replace your-domain.com with your actual domain
-Sitemap: https://your-domain.com/sitemap.xml
+Disallow:

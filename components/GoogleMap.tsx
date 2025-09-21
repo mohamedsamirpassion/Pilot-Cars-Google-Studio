@@ -1,25 +1,23 @@
 import React from 'react';
-// FIX: Import `MapMouseEvent` to use for the `onClick` handler.
 import { APIProvider, Map, AdvancedMarker, Pin, MapMouseEvent } from '@vis.gl/react-google-maps';
 
 interface GoogleMapProps {
     center: { lat: number; lng: number };
     zoom: number;
-    // FIX: Replaced `google.maps.MapMouseEvent` with the correct `MapMouseEvent` type from `@vis.gl/react-google-maps`.
     onClick?: (e: MapMouseEvent) => void;
     children?: React.ReactNode;
     className?: string;
 }
 
 const GoogleMapComponent: React.FC<GoogleMapProps> = ({ center, zoom, onClick, children, className }) => {
-    // IMPORTANT: API keys should be stored in environment variables and not hardcoded.
-    // In a real application, this would be handled by a build process (e.g., Vite, Webpack).
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    // IMPORTANT: The API key must be obtained exclusively from the environment variable `process.env.API_KEY`.
+    const apiKey = process.env.API_KEY;
 
     if (!apiKey) {
         return (
-            <div className={`flex items-center justify-center bg-slate-200 text-red-600 ${className}`}>
-                <p className="p-4 text-center">Google Maps API key is missing. Please configure it in your environment variables.</p>
+            <div className={`flex flex-col items-center justify-center bg-slate-200 text-slate-600 ${className}`}>
+                <p className="p-4 text-center font-semibold">Google Maps cannot be displayed.</p>
+                <p className="px-4 text-center text-sm -mt-4">Reason: The API key is not configured for this environment.</p>
             </div>
         );
     }

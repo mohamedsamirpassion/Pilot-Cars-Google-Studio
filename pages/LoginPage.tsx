@@ -43,6 +43,8 @@ const LoginPage: React.FC = () => {
     { role: 'Content Marketing', email: 'marketing@pilotcars.com' },
     { role: 'Super Admin', email: 'super.admin@pilotcars.com' },
   ];
+  
+  const inputClasses = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100";
 
   return (
     <div className="max-w-md mx-auto">
@@ -61,7 +63,7 @@ const LoginPage: React.FC = () => {
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
-                className="input" 
+                className={inputClasses}
                 required 
                 disabled={loading}
               />
@@ -73,7 +75,7 @@ const LoginPage: React.FC = () => {
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
-                className="input" 
+                className={inputClasses} 
                 required 
                 disabled={loading}
               />
@@ -110,17 +112,8 @@ const LoginPage: React.FC = () => {
         </CardContent>
       </Card>
       
-      <GlobalStyles />
     </div>
   );
 };
-
-const GlobalStyles = () => (
-    <style>{`
-        .input {
-            @apply w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100;
-        }
-    `}</style>
-);
 
 export default LoginPage;

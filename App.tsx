@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Header from './components/Header';
@@ -11,47 +11,62 @@ import DashboardPage from './pages/DashboardPage';
 import OrderPilotPage from './pages/OrderPilotPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import ErrorPage from './pages/ErrorPage';
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) {
+    // Using replace ensures the login page replaces the current entry in history,
+    // so the user doesn't hit "back" and end up in a weird state.
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
+const RootLayout: React.FC = () => {
+    return (
+        <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
+            <Header />
+            <main className="flex-grow container mx-auto px-4 py-8">
+                <Outlet />
+            </main>
+            <Footer />
+        </div>
+    );
+};
+
+const router = createBrowserRouter([
+    {
+        path: "/",
+        element: <RootLayout />,
+        errorElement: <ErrorPage />,
+        children: [
+            { index: true, element: <HomePage /> },
+            { path: "login", element: <LoginPage /> },
+            { path: "register", element: <RegisterPage /> },
+            { path: "order-pilot", element: <OrderPilotPage /> },
+            { path: "blog", element: <BlogPage /> },
+            { path: "blog/:slug", element: <BlogPostPage /> },
+            {
+                path: "dashboard",
+                element: (
+                    <ProtectedRoute>
+                        <DashboardPage />
+                    </ProtectedRoute>
+                ),
+            },
+        ],
+    },
+]);
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <BrowserRouter>
-          <div className="flex flex-col min-h-screen bg-slate-100 text-slate-800">
-            <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/order-pilot" element={<OrderPilotPage />} />
-                <Route path="/blog" element={<BlogPage />} />
-                <Route path="/blog/:slug" element={<BlogPostPage />} />
-                <Route 
-                  path="/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <DashboardPage />
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </NotificationProvider>
     </AuthProvider>
   );
-};
-
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  return <>{children}</>;
 };
 
 
