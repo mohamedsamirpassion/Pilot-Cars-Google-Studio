@@ -11,10 +11,10 @@ This contains everything you need to run your app locally.
     npm install
     ```
 2.  **Set the API Key:**
-    Create a file named `.env.local` in the root of the project and add your Google Maps API key to it.
+    Create a file named `.env.local` in the root of the project and add your Google Maps API key to it. The key **must** be prefixed with `VITE_`.
 
     ```
-    API_KEY="YOUR_GOOGLE_MAPS_API_KEY"
+    VITE_API_KEY="YOUR_GOOGLE_MAPS_API_KEY"
     ```
     *This is required for the live map features to work.*
 

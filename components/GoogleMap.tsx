@@ -10,14 +10,16 @@ interface GoogleMapProps {
 }
 
 const GoogleMapComponent: React.FC<GoogleMapProps> = ({ center, zoom, onClick, children, className }) => {
-    // IMPORTANT: The API key must be obtained exclusively from the environment variable `process.env.API_KEY`.
-    const apiKey = process.env.API_KEY;
+    // IMPORTANT: In a Vite project, environment variables must be prefixed with VITE_
+    // to be exposed on the client. The key must be obtained from `import.meta.env`.
+    // FIX: Cast `import.meta` to `any` to resolve TypeScript error about missing 'env' property.
+    const apiKey = (import.meta as any).env.VITE_API_KEY;
 
     if (!apiKey) {
         return (
-            <div className={`flex flex-col items-center justify-center bg-slate-200 text-slate-600 ${className}`}>
-                <p className="p-4 text-center font-semibold">Google Maps cannot be displayed.</p>
-                <p className="px-4 text-center text-sm -mt-4">Reason: The API key is not configured for this environment.</p>
+            <div className={`flex flex-col items-center justify-center bg-slate-200 text-red-600 p-4 ${className}`}>
+                <p className="text-center font-semibold">Google Maps API key is missing.</p>
+                <p className="text-center text-sm">Please configure it in your environment variables.</p>
             </div>
         );
     }
